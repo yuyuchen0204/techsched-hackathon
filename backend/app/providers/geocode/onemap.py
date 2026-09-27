@@ -10,12 +10,24 @@ Not verified live here (no OneMap account on the dev machine); response parsing 
 """
 from __future__ import annotations
 
+import base64
+import json
 import time
 from typing import Any
 
 import httpx
 
 from app.providers.geocode.base import GeocodeError, GeocodeResult, normalize_address
+
+
+def _jwt_exp(token: str) -> float | None:
+    """Expiry ('exp' claim) of a OneMap JWT, or None if the token is not a decodable JWT."""
+    try:
+        payload = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        return float(claims["exp"])
+    except (IndexError, KeyError, TypeError, ValueError):
+        return None
 
 
 class OneMapGeocoder:
@@ -26,12 +38,13 @@ class OneMapGeocoder:
         if not token and not (email and password):
             raise GeocodeError("OneMap needs ONEMAP_TOKEN or ONEMAP_EMAIL + ONEMAP_PASSWORD")
         self.base_url = base_url.rstrip("/")
-        self._static_token = token
         self._email, self._password = email, password
         self.timeout = timeout
         self._client = client
         self._token: str | None = token or None
-        self._token_expiry: float = float("inf") if token else 0.0
+        # a static ONEMAP_TOKEN also expires after 3 days; with email/password set it is renewed like a fetched one
+        self._token_expiry: float = (_jwt_exp(token) or float("inf")) if token else 0.0
+        self._can_login = bool(email and password)
 
     def _http(self) -> httpx.Client:
         return self._client or httpx.Client(timeout=self.timeout, headers={"User-Agent": "techsched-demo/0.2"})
@@ -39,6 +52,10 @@ class OneMapGeocoder:
     def _ensure_token(self) -> str:
         if self._token and time.time() < self._token_expiry - 600:
             return self._token
+        if not self._can_login:
+            if self._token:
+                return self._token  # static token only: nothing to renew with, let OneMap decide
+            raise GeocodeError("OneMap token expired and no ONEMAP_EMAIL/ONEMAP_PASSWORD to renew it")
         client = self._http()
         try:
             resp = client.post(f"{self.base_url}/api/auth/post/getToken", json={"email": self._email, "password": self._password})
@@ -69,7 +86,7 @@ class OneMapGeocoder:
             resp = client.get(f"{self.base_url}/api/common/elastic/search",
                               params={"searchVal": query, "returnGeom": "Y", "getAddrDetails": "Y", "pageNum": 1},
                               headers={"Authorization": f"Bearer {token}"})
-            if resp.status_code == 401 and not self._static_token:
+            if resp.status_code == 401 and self._can_login:
                 self._token = None  # expired → refresh once
                 token = self._ensure_token()
                 resp = client.get(f"{self.base_url}/api/common/elastic/search",
@@ -110,7 +127,7 @@ class OneMapGeocoder:
         try:
             resp = client.get(f"{self.base_url}/api/public/revgeocode", params=params,
                               headers={"Authorization": f"Bearer {token}"})
-            if resp.status_code == 401 and not self._static_token:
+            if resp.status_code == 401 and self._can_login:
                 self._token = None
                 token = self._ensure_token()
                 resp = client.get(f"{self.base_url}/api/public/revgeocode", params=params,

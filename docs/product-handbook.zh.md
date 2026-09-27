@@ -182,7 +182,7 @@ TechSched 是面向新加坡中小型上门维修企业（空调、水电、家�
 
 ### 1.4 技术条件与产品机会
 
-现场服务管理软件属于持续增长的细分市场，多家研究机构对 2026 年全球市场规模的估计在 56 亿至 61 亿美元之间，复合年增长率约 14%–15%<sup>4</sup>。与此同时，大语言模型显著降低了自然语言理解的成本，使"客户口述转结构化工单"成为可行的产品环节。但调度决策本身不适合完全交由模型完成：模型无法稳定保证硬约束，其输出也不具备可审计性。
+现场服务管理软件属于持续增长的细分市场，全球市场规模预计由 2025 年的 56.6 亿美元增长至 2026 年的 62.6 亿美元，2031 年达到 98.7 亿美元，2026–2031 年复合年增长率 9.54%<sup>4</sup>。与此同时，大语言模型显著降低了自然语言理解的成本，使"客户口述转结构化工单"成为可行的产品环节。但调度决策本身不适合完全交由模型完成：模型无法稳定保证硬约束，其输出也不具备可审计性。
 
 因此本产品采用的分工是：语义理解、异常识别与下一步动作选择由 Agent 承担；可行性校验、权限判定与提交写入由确定性代码承担。
 
@@ -191,9 +191,9 @@ TechSched 是面向新加坡中小型上门维修企业（空调、水电、家�
 **本章信息来源**
 
 1. 新加坡土地管理局（Singapore Land Authority），《Total Land Area of Singapore》数据集，data.gov.sg：截至 2025 年 12 月，新加坡国土面积约 744.3 平方公里（基于 2.515 米高潮位地籍测量边界）。<https://data.gov.sg/datasets/d_f74e5ee9575e98ba439bee67e8f9b097/view>
-2. 新加坡建屋发展局（Housing & Development Board），《Sample Household Survey 2023/24》新闻稿：组屋是新加坡"近十分之八"居民的居所；2023 年居住于组屋的公民与永久居民约 318 万人，组屋住户约 110 万户。<https://www.hdb.gov.sg/about-us/news-and-publications/press-releases/sample-household-survey-2023-24>
+2. 新加坡建屋发展局（Housing & Development Board），《Sample Household Survey 2023/24》（HDB Pulse，2025-11-26）：组屋是新加坡"近十分之八"居民的居所；2023 年居住于组屋的公民与永久居民约 318 万人，组屋住户约 110 万户。<https://www.hdb.gov.sg/hdb-pulse/news/2025/sample-household-survey-2023-24>
 3. 新加坡企业发展局（Enterprise Singapore），《Small Medium Enterprise Status Application Guide》（2026 年 6 月版）：中小企业须为本地注册、本地股权不低于 30%，且年销售额不超过 1 亿新元或雇员规模不超过 200 人（两项满足其一即可）。<https://sfec.enterprisejobskills.gov.sg/Callbackhandler/PdfViewer.aspx?IsSMEGuide=True>
-4. 现场服务管理（Field Service Management）软件市场规模与增速，取自 Grand View Research《Field Service Management Market Size Report, 2026–2033》与 Mordor Intelligence《Field Service Management Market Report》等第三方研究机构的公开摘要；不同机构的统计口径与市场边界定义不同，故此处以区间表示。<https://www.grandviewresearch.com/industry-analysis/field-service-management-market> · <https://www.mordorintelligence.com/industry-reports/field-service-management-market>
+4. Mordor Intelligence，《Field Service Management (FSM) Market Size & Share Analysis - Growth Trends and Forecast (2026 - 2031)》：全球现场服务管理市场 2025 年 56.6 亿美元，2026 年 62.6 亿美元，2031 年 98.7 亿美元，2026–2031 年复合年增长率 9.54%。<https://www.mordorintelligence.com/industry-reports/field-service-management-market>
 
 *说明：受 HTML 转 PDF 渲染器限制，脚注统一置于本章末尾而非每页页脚。*
 

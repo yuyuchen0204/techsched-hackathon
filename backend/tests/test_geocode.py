@@ -47,6 +47,28 @@ def test_onemap_error_payload_raises():
         g.search("x")
 
 
+def _jwt(exp: int) -> str:
+    import base64
+    import json
+    payload = base64.urlsafe_b64encode(json.dumps({"exp": exp}).encode()).decode().rstrip("=")
+    return f"h.{payload}.s"
+
+
+def test_onemap_expired_static_token_is_renewed_with_credentials():
+    token = {"access_token": "fresh", "expiry_timestamp": 9999999999}
+    search = {"found": 0, "results": []}
+    g = OneMapGeocoder(token=_jwt(1_000_000_000), email="a@b.c", password="pw", client=FakeHttp([token, search]))
+    g.search("x")
+    assert g._client.calls[0][0] == "POST" and g._client.calls[1][3]["Authorization"] == "Bearer fresh"
+
+
+def test_onemap_valid_static_token_is_used_without_login():
+    static = _jwt(9_999_999_999)
+    g = OneMapGeocoder(token=static, email="a@b.c", password="pw", client=FakeHttp([{"found": 0, "results": []}]))
+    g.search("x")
+    assert [c[0] for c in g._client.calls] == ["GET"] and g._client.calls[0][3]["Authorization"] == f"Bearer {static}"
+
+
 def test_nominatim_parses_and_filters_country():
     payload = [{"lat": "1.3725735", "lon": "103.8937879", "display_name": "Hougang Mall, 90, Hougang Avenue 10, Hougang Central, Singapore",
                 "name": "Hougang Mall", "type": "mall", "importance": 0.31, "address": {"postcode": "538766"}}]

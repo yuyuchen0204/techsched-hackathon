@@ -81,6 +81,12 @@ sudo ln -sf /etc/nginx/sites-available/techsched /etc/nginx/sites-enabled/techsc
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t -q && sudo systemctl reload nginx
 
+echo "== daily API check (cron, 09:07 Asia/Singapore = 01:07 UTC) =="
+mkdir -p "$HOME/apicheck"
+CRON_LINE="7 1 * * * $APP_DIR/backend/.venv/bin/python $APP_DIR/scripts/lightsail/apicheck.py >> $HOME/apicheck/apicheck.log 2>&1"
+EXISTING_CRON=$(crontab -l 2>/dev/null | grep -v 'scripts/lightsail/apicheck.py' || true)
+printf '%s\n%s\n' "$EXISTING_CRON" "$CRON_LINE" | sed '/^$/d' | crontab -
+
 echo "== health check =="
 for _ in $(seq 1 30); do
   if curl -sf http://127.0.0.1/techsched/health >/dev/null; then
