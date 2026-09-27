@@ -1,0 +1,47 @@
+Trade Type,Specific Problem,Problem Complexity,Repair Duration (min)
+Air Conditioning,No cooling or heating,3,50
+Air Conditioning,Water leakage,2,35
+Air Conditioning,Unusual noise,2,35
+Air Conditioning,Remote control or panel malfunction,1,20
+Air Conditioning,Compressor failure,5,105
+Air Conditioning,Refrigerant refill or leakage,4,75
+Refrigerator,Not cooling,3,50
+Refrigerator,Unusual noise,2,35
+Refrigerator,Worn door seal not closing properly,1,20
+Refrigerator,Icing or defrost malfunction,3,50
+Refrigerator,Compressor failure,5,105
+Washing Machine,Not draining,2,35
+Washing Machine,Spin cycle malfunction,3,50
+Washing Machine,Water leakage,3,50
+Washing Machine,Unusual noise or excessive vibration,2,35
+Washing Machine,Won't start,3,50
+Water Heater,No hot water,3,50
+Water Heater,Water leakage,3,50
+Water Heater,Gas water heater won't ignite,4,75
+Water Heater,Unstable temperature,2,35
+Water Heater,Gas leak safety hazard,5,105
+Plumbing & Bathroom,Pipe leakage,2,35
+Plumbing & Bathroom,Toilet clog,1,20
+Plumbing & Bathroom,Toilet leak or tank malfunction,2,35
+Plumbing & Bathroom,Dripping or faulty faucet,1,20
+Plumbing & Bathroom,Drain blockage,3,50
+Plumbing & Bathroom,Burst pipe emergency,4,75
+Electrical & Lighting,Outlet no power,2,35
+Electrical & Lighting,Light fixture not working,1,20
+Electrical & Lighting,Circuit trip or short circuit,4,75
+Electrical & Lighting,Exposed or aging wiring safety hazard,4,75
+Electrical & Lighting,Switch malfunction,1,20
+Locks & Hardware,Lock won't open,2,35
+Locks & Hardware,Lock damaged needs replacement,2,35
+Locks & Hardware,Loose door handle or hinge,1,20
+Locks & Hardware,Security door warped or stuck,3,50
+Gas Stove,Won't ignite,2,35
+Gas Stove,Abnormal flame yellow or unstable,3,50
+Gas Stove,Gas leak safety hazard,5,105
+Gas Stove,Igniter malfunction,2,35
+Furniture & Woodwork,Furniture assembly,1,20
+Furniture & Woodwork,Cabinet door or drawer damage,2,35
+Furniture & Woodwork,Loose table or chair repair,1,20
+Network & Smart Devices,WiFi connection failure,2,35
+Network & Smart Devices,Smart lock or camera malfunction,3,50
+Network & Smart Devices,Router or network device installation,2,35

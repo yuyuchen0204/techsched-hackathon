@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>TechSched Work Order Flow</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#e9edf3; --ink:#141a22; --muted:#66707f;
+  --line:#dde2ea; --line-strong:#b6bfcb;
+  --agent:#2c5be6; --agent-bg:#eaf0ff; --agent-glow:rgba(44,91,230,.26);
+  --tool:#c27505;  --tool-bg:#fff5df;  --tool-glow:rgba(194,117,5,.28);
+  --actor:#159a67; --actor-bg:#e4f6ee; --actor-glow:rgba(21,154,103,.26);
+  --flow:#d6336c; --flow-bg:#fff0f5; --flow-glow:rgba(214,51,108,.35);
+  --ok:#159a67;
+  --agent-dim:rgba(44,91,230,.55); --tool-dim:rgba(194,117,5,.7); --actor-dim:rgba(21,154,103,.6);
+  --control:#4b5a75; --control-bg:#eef1f6; --control-glow:rgba(75,90,117,.26); --control-dim:rgba(75,90,117,.5);
+  --shadow:0 1px 2px rgba(20,26,34,.06),0 10px 28px rgba(20,26,34,.10);
+  --sans:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#161b22; --surface-2:#1f2733; --ink:#e7ecf3; --muted:#94a0b1;
+    --line:#29323e; --line-strong:#465262;
+    --agent:#7391ff; --agent-bg:#182339; --agent-glow:rgba(115,145,255,.28);
+    --tool:#f2a93b;  --tool-bg:#2b2313;  --tool-glow:rgba(242,169,59,.28);
+    --actor:#3ccf92; --actor-bg:#12302a; --actor-glow:rgba(60,207,146,.26);
+    --flow:#ff5f95; --flow-bg:#34192a; --flow-glow:rgba(255,95,149,.38);
+    --ok:#3ccf92;
+    --agent-dim:rgba(115,145,255,.6); --tool-dim:rgba(242,169,59,.7); --actor-dim:rgba(60,207,146,.6);
+    --control:#a9b6cc; --control-bg:#1e2632; --control-glow:rgba(169,182,204,.26); --control-dim:rgba(169,182,204,.5);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#161b22; --surface-2:#1f2733; --ink:#e7ecf3; --muted:#94a0b1;
+  --line:#29323e; --line-strong:#465262;
+  --agent:#7391ff; --agent-bg:#182339; --agent-glow:rgba(115,145,255,.28);
+  --tool:#f2a93b;  --tool-bg:#2b2313;  --tool-glow:rgba(242,169,59,.28);
+  --actor:#3ccf92; --actor-bg:#12302a; --actor-glow:rgba(60,207,146,.26);
+  --flow:#ff5f95; --flow-bg:#34192a; --flow-glow:rgba(255,95,149,.38);
+  --ok:#3ccf92;
+  --agent-dim:rgba(115,145,255,.6); --tool-dim:rgba(242,169,59,.7); --actor-dim:rgba(60,207,146,.6);
+  --control:#a9b6cc; --control-bg:#1e2632; --control-glow:rgba(169,182,204,.26); --control-dim:rgba(169,182,204,.5);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,select{font:inherit;color:inherit}
+button:focus-visible,select:focus-visible,.step:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
+.app{max-width:1720px;margin:0 auto;padding-inline:16px;padding-block:12px 28px}
+
+/* header */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding-block:4px 12px}
+.brand h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hint{margin-left:auto;font-size:11px;color:var(--muted)}
+
+/* layout */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1060px){.main{grid-template-columns:1fr}}
+
+/* stage */
+.stage-wrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-x:auto;overflow-y:hidden;position:relative}
+.stage-scaler{position:relative;margin:0 auto}
+.stage{position:absolute;left:0;top:0;width:1240px;height:720px;transform-origin:0 0}
+.edges,.overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cap{position:absolute;left:16px;font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--muted)}
+.cap small{display:block;margin-top:1px;font-size:9px;font-weight:500;letter-spacing:.02em;text-transform:none}
+
+.node{position:absolute;display:flex;flex-direction:column;gap:1px;padding:8px 12px;background:var(--surface);
+  border:2px solid var(--line-strong);opacity:.5;transition:opacity .35s,border-color .35s,background .35s,box-shadow .35s}
+.node.agent{border-radius:12px;border-color:var(--agent-dim)}
+.node.control{border-radius:6px;border-width:4px;border-style:double;border-color:var(--control-dim);padding:6px 11px}
+.node.actor{border-radius:999px;border-style:dotted;border-color:var(--actor-dim);text-align:center;padding:6px 14px}
+.node.tool{border-radius:50%;border-style:dashed;border-color:var(--tool-dim);text-align:center;align-items:center;justify-content:center;padding:9px 14px 10px;overflow:visible}
+.node .k{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.node.agent .k{color:var(--agent)} .node.tool .k{color:var(--tool)} .node.actor .k{color:var(--actor)} .node.control .k{color:var(--control)}
+.node .l{font-size:13px;font-weight:600;line-height:1.2;color:var(--ink);white-space:nowrap}
+.node.tool .l{font-size:12.5px}
+.node .s{font-size:9.5px;letter-spacing:-.01em;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.node .d{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+.node .d>div{overflow:hidden;min-height:0}
+.node .d p{margin:5px 0 0;padding-top:5px;border-top:1px dashed var(--line);font-size:10.5px;line-height:1.35;color:var(--ink);text-align:left}
+.node.actor .d p{text-align:center}
+.node .d p::before{content:"▸ ";font-weight:700}
+/* a tool's "what it is doing" hangs below the ellipse as a bubble, so the text never meets the curve */
+.node.tool .d{grid-template-rows:1fr;position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%) translateY(-4px);width:158px;
+  background:var(--surface);border:1.5px dashed var(--tool);border-radius:8px;box-shadow:var(--shadow);opacity:0;transition:opacity .3s,transform .3s}
+.node.tool .d::before{content:"";position:absolute;left:50%;top:-6px;width:9px;height:9px;transform:translateX(-50%) rotate(45deg);background:var(--surface);border-left:1.5px dashed var(--tool);border-top:1.5px dashed var(--tool)}
+.node.tool .d p{margin:0;padding:5px 9px 6px;border-top:0;text-align:center}
+.node.tool.active .d{opacity:1;transform:translateX(-50%) translateY(0)}
+.node.active{opacity:1}
+.node.active .d{grid-template-rows:1fr}
+.node.agent.active{border-color:var(--agent);background:var(--agent-bg);box-shadow:0 0 0 4px var(--agent-glow),0 12px 30px var(--agent-glow)}
+.node.tool.active{border-color:var(--tool);background:var(--tool-bg);box-shadow:0 0 0 4px var(--tool-glow),0 12px 30px var(--tool-glow)}
+.node.actor.active{border-color:var(--actor);background:var(--actor-bg);box-shadow:0 0 0 4px var(--actor-glow),0 12px 30px var(--actor-glow)}
+.node.control.active{border-color:var(--control);background:var(--control-bg);box-shadow:0 0 0 4px var(--control-glow),0 12px 30px var(--control-glow)}
+.node.agent.active .d p::before{color:var(--agent)}
+.node.tool.active .d p::before{color:var(--tool)}
+.node.actor.active .d p::before{color:var(--actor)}
+.node.control.active .d p::before{color:var(--control)}
+
+.edges path.e{fill:none;stroke:var(--line-strong);stroke-width:1.3;opacity:.75;marker-end:url(#arr);transition:opacity .3s}
+.edges path.e.lit{stroke:var(--flow);stroke-width:2.4;stroke-dasharray:7 6;opacity:1;marker-end:url(#arrLit);animation:ants .8s linear infinite}
+.edges path.e.next{stroke:var(--flow);stroke-width:1.8;stroke-dasharray:2 5;opacity:.75;marker-end:url(#arrLit)}
+@keyframes ants{to{stroke-dashoffset:-26}}
+
+.chip{position:absolute;max-width:256px;padding:5px 9px 6px;background:var(--surface);border:1.5px solid var(--flow);border-radius:8px;
+  box-shadow:var(--shadow);font-size:10.5px;line-height:1.3;opacity:0;transform:translate(-50%,-50%) translateY(6px);
+  transition:opacity .3s,transform .3s,border-color .3s;pointer-events:none;white-space:normal}
+.chip.show{opacity:1;transform:translate(-50%,-50%)}
+.chip .ck{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--flow);margin-right:6px;vertical-align:1px}
+.chip .cv{font-weight:500;color:var(--ink)}
+.chip.dim{border-color:var(--line-strong);opacity:.72}
+.chip.dim .ck{color:var(--muted)}
+.chip.end{border-color:var(--ok)}
+.chip.end .ck{color:var(--ok)}
+
+.token{transition:none}
+.token .core{fill:var(--flow);stroke:var(--surface);stroke-width:2.5}
+.token text{fill:#fff;font-size:8.5px;font-weight:700;font-family:var(--sans);text-anchor:middle}
+.token .ring{fill:none;stroke:var(--flow);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.token.ping .ring{animation:ping 1.1s ease-out 2}
+@keyframes ping{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+.token.hidden{visibility:hidden}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 4px 0;font-size:11px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:11px;border:2px solid var(--agent);border-radius:4px}
+.sw.tool{border-color:var(--tool);border-style:dashed;border-radius:50%;width:22px}
+.sw.actor{border-color:var(--actor);border-style:dotted;border-radius:999px}
+.sw.control{border-color:var(--control);border-style:double;border-width:4px;border-radius:3px}
+.sw.flow{width:12px;height:12px;border-radius:50%;background:var(--flow);border:2px solid var(--surface);box-shadow:0 0 0 1.5px var(--flow)}
+
+/* rail */
+.rail{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card.now{border-width:2px}
+.card.now.agent{border-color:var(--agent)}
+.card.now.tool{border-color:var(--tool);border-style:dashed}
+.card.now.actor{border-color:var(--actor);border-style:dotted}
+.card.now.control{border-color:var(--control);border-style:double;border-width:4px}
+.summary{font-size:12px;color:var(--muted);margin:0}
+.rowx{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.badge{font-size:9.5px;font-weight:700;letter-spacing:.14em;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+.badge.agent{background:var(--agent-bg);color:var(--agent)}
+.badge.tool{background:var(--tool-bg);color:var(--tool)}
+.badge.actor{background:var(--actor-bg);color:var(--actor)}
+.badge.control{background:var(--control-bg);color:var(--control)}
+.count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nodename{margin:8px 0 0;font-size:16px;font-weight:600;line-height:1.2}
+.nodesub{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.title{margin:8px 0 0;font-size:13.5px;font-weight:600}
+.doing{margin:4px 0 0;font-size:12px;color:var(--ink)}
+.doing b{font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.08em;margin-right:6px}
+.io{margin-top:10px;font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.io.out{color:var(--flow)}
+.iov{font-size:12px;font-weight:500;margin:3px 0 0;color:var(--ink);line-height:1.45;word-break:break-word}
+.fields{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.fields li{font-size:12px;line-height:1.45;padding-left:14px;position:relative;color:var(--ink);word-break:break-word}
+.fields li::before{content:"›";position:absolute;left:2px;color:var(--flow);font-weight:700}
+.endnote{margin:10px 0 0;font-size:12px;color:var(--ok);font-weight:600;min-height:1.4em}
+.progress{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;width:0;background:var(--flow)}
+.progress.hold i{background:var(--ok)}
+.controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;line-height:1.2}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--flow);border-color:var(--flow);color:#fff;min-width:74px}
+.controls label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);margin-left:auto}
+.controls select{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:5px 6px;font-size:12px}
+.steps{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.step{display:flex;gap:8px;width:100%;text-align:left;padding:7px 10px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--muted);font-size:11.5px;cursor:pointer;line-height:1.35}
+.step:last-child{border-bottom:0}
+.step .n{flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:1px solid var(--line-strong);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;font-variant-numeric:tabular-nums}
+.step .t{min-width:0}
+.step .t b{font-weight:600;color:inherit}
+.step .kk{font-size:8.5px;font-weight:700;letter-spacing:.12em;padding:1px 5px;border-radius:999px;margin-right:5px;vertical-align:1px}
+.step .kk.agent{background:var(--agent-bg);color:var(--agent)}
+.step .kk.tool{background:var(--tool-bg);color:var(--tool)}
+.step .kk.actor{background:var(--actor-bg);color:var(--actor)}
+.step .kk.control{background:var(--control-bg);color:var(--control)}
+.step.now{background:var(--flow-bg);color:var(--ink)}
+.step.now .n{background:var(--flow);border-color:var(--flow);color:#fff}
+.step.done .n{background:var(--line-strong);border-color:var(--line-strong);color:var(--surface)}
+.step.todo{opacity:.62}
+.step .o{display:block;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .edges path.e.lit{animation:none}
+  .token.ping .ring{animation:none}
+  .node,.chip,.node .d{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <h1>TechSched Work Order Flow</h1>
+      <p>One work order travelling through the agent system · nodes map to real backend modules · edges name the data handed over at each step</p>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Scenarios"></nav>
+    <span class="hint">Space play/pause · ← → step · R replay</span>
+  </header>
+
+  <div class="main">
+    <section>
+      <div class="stage-wrap" id="stageWrap">
+        <div class="stage-scaler" id="scaler">
+          <div class="stage" id="stage">
+            <svg class="edges" id="edges" viewBox="0 0 1240 720" aria-hidden="true">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line-strong)"/></marker>
+                <marker id="arrLit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--flow)"/></marker>
+              </defs>
+              <g id="edgeLayer"></g>
+              <path id="measure" visibility="hidden" d="M0 0"/>
+            </svg>
+            <div class="cap" style="top:10px">APPS / HUMANS</div>
+            <div class="cap" style="top:150px">ORCHESTRATION<small>pipeline driver · rule engine · task runtime — not agents</small></div>
+            <div class="cap" style="top:335px">AGENTS<small>the three logical agents</small></div>
+            <div class="cap" style="top:545px">TOOLS</div>
+            <div id="nodes"></div>
+            <div id="chips">
+              <div class="chip" id="chipIn"><span class="ck">INPUT</span><span class="cv"></span></div>
+              <div class="chip" id="chipOut"><span class="ck">OUTPUT</span><span class="cv"></span></div>
+            </div>
+            <svg class="overlay" viewBox="0 0 1240 720" aria-hidden="true">
+              <g class="token hidden" id="token">
+                <circle class="ring" r="14"/>
+                <circle class="core" r="13"/>
+                <text y="3.5">WO</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i>Agent · solid rounded box</span>
+        <span><i class="sw control"></i>Engine · double line (orchestration / rules / runtime — not agents)</span>
+        <span><i class="sw tool"></i>Tool · dashed ellipse</span>
+        <span><i class="sw actor"></i>App / human · dotted pill</span>
+        <span><i class="sw flow"></i>Work order · where the data is right now</span>
+        <span>Edge label = the data fields handed along that edge · only one node works at a time; tools light up only while called</span>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <p class="summary" id="summary"></p>
+      <div class="card now" id="card">
+        <div class="rowx"><span class="badge" id="badge"></span><span class="count" id="count"></span></div>
+        <div class="nodename" id="nodeName"></div>
+        <div class="nodesub" id="nodeSub"></div>
+        <div class="title" id="stepTitle"></div>
+        <div class="doing"><b>Now doing</b><span id="stepDoing"></span></div>
+        <div class="io">INPUT · handed over from the previous step</div>
+        <div class="iov" id="stepIn"></div>
+        <div class="io out">OUTPUT · fields produced in this step</div>
+        <ul class="fields" id="stepOut"></ul>
+        <div class="endnote" id="endNote"></div>
+        <div class="progress" id="progress"><i id="bar"></i></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btnPrev" title="Previous step (←)">◀</button>
+        <button class="btn primary" id="btnPlay">⏸ Pause</button>
+        <button class="btn" id="btnNext" title="Next step (→)">▶</button>
+        <button class="btn" id="btnReplay" title="Replay (R)">⟲ Replay</button>
+        <label for="loopChk"><input type="checkbox" id="loopChk" checked> Loop</label>
+        <select id="speed" aria-label="Speed">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+      <div class="steps" id="steps"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+const W = 1240, H = 720;
+const SIZE = { actor: { w: 170, h: 52 }, agent: { w: 176, h: 74 }, control: { w: 196, h: 74 }, tool: { w: 128, h: 68 } };
+const ACTIVE_EXTRA = { actor: 30, agent: 34, control: 34, tool: 56 }; // tool: the callout bubble below the ellipse
+const KIND_LABEL = { agent: 'AGENT', tool: '⚙ TOOL', actor: 'APP / HUMAN', control: 'ENGINE' };
+const ACTIVE_SUFFIX = { agent: 'WORKING', tool: 'CALLED', actor: 'ACTING', control: 'RUNNING' };
+const KIND_BADGE = { agent: 'AGENT', tool: 'TOOL · CALLED', actor: 'APP / HUMAN', control: 'ENGINE · NOT AN AGENT' };
+const KIND_SHORT = { agent: 'agent', tool: 'tool', actor: 'app', control: 'engine' };
+
+// Nodes mirror backend/app: actors (top row), agents (middle), tools (bottom). Readable label, module id as subtitle.
+const NODES = [
+  // apps / humans
+  { id: 'customer', label: 'Customer App', sub: 'chat + order page', kind: 'actor', x: 160, y: 58 },
+  { id: 'dispatcher', label: 'Dispatcher Console', sub: 'review + human queue', kind: 'actor', x: 900, y: 58 },
+  { id: 'technician', label: 'Technician App', sub: 'jobs · leave · reports', kind: 'actor', x: 1090, y: 58 },
+  // orchestration layer: deterministic drivers + the task runtime — not agents
+  { id: 'orchestrator', label: 'Orchestrator', sub: 'Orchestrator · sole writer', kind: 'control', tag: 'ENGINE · PIPELINE', x: 310, y: 215 },
+  { id: 'policy', label: 'Policy Engine', sub: 'PolicyEngine', kind: 'control', tag: 'ENGINE · RULES', x: 620, y: 215 },
+  { id: 'runtime', label: 'Agent Runtime', sub: 'AgentRuntime · 19 tools', kind: 'control', tag: 'ENGINE · TASK LOOP', x: 930, y: 215 },
+  // the three logical agents
+  { id: 'understanding', label: 'Understanding Agent', sub: 'UnderstandingAgent', kind: 'agent', x: 200, y: 400 },
+  { id: 'scheduling', label: 'Scheduling Agent', sub: 'SchedulingAgent', kind: 'agent', x: 620, y: 400 },
+  { id: 'risk', label: 'Risk Monitor Agent', sub: 'RiskMonitoringAgent', kind: 'agent', x: 1040, y: 400 },
+  // tools
+  { id: 'llm', label: 'LLM', sub: 'DeepSeek / mock', kind: 'tool', x: 70, y: 595 },
+  { id: 'catalog', label: 'Repair Catalog', sub: 'CSV catalog', kind: 'tool', x: 207, y: 595 },
+  { id: 'geocoder', label: 'Geocoder', sub: 'OneMap→Nominatim', kind: 'tool', x: 344, y: 595 },
+  { id: 'routes', label: 'Route Matrix', sub: 'OSRM travel time', kind: 'tool', x: 481, y: 595 },
+  { id: 'solver', label: 'Solver', sub: 'bounded search', kind: 'tool', x: 618, y: 595 },
+  { id: 'validator', label: 'Validator', sub: 'hard constraints', kind: 'tool', x: 755, y: 595 },
+  { id: 'scorer', label: 'Scorer', sub: 'five-part score', kind: 'tool', x: 892, y: 595 },
+  { id: 'notify', label: 'Notification', sub: 'simulated in-app', kind: 'tool', x: 1029, y: 595 },
+  { id: 'humanq', label: 'Human Handoff', sub: 'flag_for_human', kind: 'tool', x: 1166, y: 595 },
+];
+
+// Every step: which node works, what it is doing (shown at the node), the data it hands to the next node (`out`,
+// named as fields, shown on the edge) and the field-level breakdown for the rail. No raw ids or values.
+const SCEN = [
+  {
+    id: 'p3-auto', name: 'P3 routine order · auto-dispatch',
+    summary: 'A returning customer places a routine order in the customer app: understand → dispatch → commit → notify all happen inside one request, fully automatic, without entering the agent runtime.',
+    entry: 'customer message + customer identity + session context',
+    steps: [
+      { node: 'customer', title: 'Customer submits a repair request (enters the system)', doing: 'Describes the fault in the chat box', out: 'customer message + customer identity + session context',
+        outputs: ['Customer message: the fault in their own words', 'Customer identity: returning customer with history', 'Session context: saved phone number and default address'] },
+      { node: 'understanding', title: 'Understand intent, collect information', doing: 'Classifies the intent, lists known / missing fields', out: 'intent + known fields + missing-field checklist',
+        outputs: ['Intent: repair request', 'Known fields: customer, address', 'Missing fields: catalog item, preferred time window', 'Safety flag: none'] },
+      { node: 'llm', title: 'Structured understanding', doing: 'Parses the message into structured fields', out: 'problem hint + location hint + time hint',
+        outputs: ['Problem hint: extracted from the message', 'Location hint / time hint: empty this time', 'Semantic fields only — never durations, priorities or scores'] },
+      { node: 'catalog', title: 'Repair catalog match', doing: 'Searches the repair catalog for matching items', out: 'catalog item + complexity + standard duration + alternatives',
+        outputs: ['Catalog item: air conditioner not cooling', 'Complexity level + standard repair duration', 'Alternatives: 2 items, offered to the customer as buttons'] },
+      { node: 'geocoder', title: 'Address resolution', doing: 'Turns the address into coordinates', out: 'normalised address + coordinates + source',
+        outputs: ['Normalised address + postal code', 'Latitude / longitude', 'Source: OneMap (falls back to Nominatim)', 'Unit number present → the order may be created'] },
+      { node: 'understanding', title: 'Negotiate a feasible time window', doing: 'Trial-fits feasible windows with zero disturbance', out: '3 feasible windows + technician + earliest start for each',
+        outputs: ['Candidate windows: 3 (30-minute steps)', 'Each window carries: available technician, earliest start time', 'Customer history: technicians rated poorly before are down-weighted'] },
+      { node: 'customer', title: 'Confirmation card → submit order', doing: 'Reviews the confirmation card and submits', out: 'confirmed order details + base priority',
+        outputs: ['Order details: catalog item, address with unit, time window, contact', 'Urgent / paid options: no', 'Base priority: P3'] },
+      { node: 'orchestrator', title: 'Create order → start dispatch', doing: 'Creates the order, freezes catalog parameters, starts dispatch', out: 'work order + catalog snapshot + dispatch run record',
+        outputs: ['Work order: status OPEN, base priority P3', 'Catalog snapshot: copied onto the order; later catalog edits do not affect it', 'Dispatch run record: every step is logged from here on'] },
+      { node: 'scheduling', title: 'Load the schedule snapshot', doing: 'Reads the current schedule and locked tasks', out: 'schedule snapshot + technician status + locked prefix',
+        outputs: ['Schedule snapshot: current version, all technicians and in-flight orders', 'Locked prefix: departed / in-progress tasks cannot move', 'Unavailable periods: rest blocks, leave intervals'] },
+      { node: 'routes', title: 'Travel-time matrix', doing: 'Looks up technician ↔ customer travel times', out: 'travel-time matrix + road-network source',
+        outputs: ['Travel matrix: minutes from every technician to every address', 'Source: OSRM real road network × traffic factor + parking allowance', 'Unreachable legs: left empty, never guessed'] },
+      { node: 'risk', title: 'Priority classification', doing: 'Computes effective priority and change authority', out: 'effective priority + change authority',
+        outputs: ['Effective priority: P3 (base P3, no risk events)', 'Change authority: may not move any other order', 'Reference rules: paid → P1; technician cancels with < 30 min left → P0'] },
+      { node: 'scheduling', title: 'Bounded search', doing: 'Trials every qualified technician × insertion position', out: 'qualified technicians + feasible insertion set',
+        outputs: ['Qualified technicians: 3 of 8 (skill level met, not excluded by the customer)', 'Trials: 27 insertion positions → 6 feasible', 'P3 skips bounded repair (nobody else moves)'] },
+      { node: 'solver', title: 'Build candidate plans', doing: 'Turns feasible slots into complete candidate plans', out: 'candidate plans (fastest response / least disruption / balanced)',
+        outputs: ['Candidate plans: fastest response, least disruption, balanced', 'Each candidate is a complete schedule, not a fragment', 'Affected orders: 0'] },
+      { node: 'validator', title: 'Hard-constraint validation', doing: 'Checks skills / shift / window / rest for every candidate', out: 'validation result + violations + rejection statistics',
+        outputs: ['Checks: skills, shift, time window, rest, locks', 'Violations: 0', 'Rejection statistics: time-window conflicts, past shift end'] },
+      { node: 'scorer', title: 'Match scoring', doing: 'Scores five parts; the lowest becomes the decision score', out: 'five sub-scores + match score + decision score',
+        outputs: ['Sub-scores: skill, travel, response speed, load balance, stability', 'Match score: 86.9', 'Decision score: the lowest across all changed orders', 'Priority adds no points'] },
+      { node: 'policy', title: 'Policy decision', doing: 'Decides by priority, authority and threshold', out: 'decision (auto / manual / unresolved) + reasons',
+        outputs: ['Decision: execute automatically', 'Basis: decision score 86.9 > threshold 70, 0 affected orders, authority respected', 'Reason list: written to the run record, traceable'] },
+      { node: 'orchestrator', title: 'Commit the schedule (sole writer)', doing: 'Writes the new schedule version and the assignment', out: 'new schedule version + assignment + order status',
+        outputs: ['Schedule version: v7 → v8 (parent kept)', 'Assignment: technician, depart / start / end times', 'Order status: assigned'] },
+      { node: 'notify', title: 'In-app notifications', doing: 'Generates customer and technician notifications', out: 'customer notification + technician notification',
+        outputs: ['Customer: technician name and planned start time', 'Technician: new job and time', 'Delivery: simulated in-app; no real SMS is sent'] },
+      { node: 'technician', title: 'All three apps sync (flow complete)', doing: 'Technician app / dispatch console / customer app refresh', out: 'consistent order status + ETA across all three apps',
+        outputs: ['Technician app: next-job card (address, unit, customer history hints)', 'Dispatch console: new schedule block; other blocks stay put', 'Customer app: order status assigned · ETA'] },
+    ],
+  },
+  {
+    id: 'p0-manual', name: 'P0 technician leave · manual approval',
+    summary: 'A technician reports leave in the technician app; the three orders released by that one event split into P0 / P2 by remaining time. The P0 plan affects another order → the dispatcher must approve it.',
+    entry: 'leave event + technician identity + effective time',
+    steps: [
+      { node: 'technician', title: 'Technician reports leave (enters the system)', doing: 'Submits “unavailable from now”', out: 'leave event + technician identity + effective time',
+        outputs: ['Leave event: unavailable from the current time', 'Technician identity + effective time', 'Idempotency key: the same leave is never processed twice'] },
+      { node: 'orchestrator', title: 'Record the facts first', doing: 'Writes the unavailable interval, releases undeparted orders', out: 'unavailable interval + released order list',
+        outputs: ['Unavailable interval: written to the technician’s day, technician version +1', 'Released orders: 3 not yet departed', 'Orders in progress: none → no interruption risk raised'] },
+      { node: 'risk', title: 'Classify by remaining time', doing: 'Assigns a priority to each released order', out: 'effective priority per order + risk events',
+        outputs: ['Rule: < 30 min left → P0; > 120 min → P2', 'Result: 1 × P0, 2 × P2', 'Risk events: technician cancelled ×3 (stable key, no duplicate alerts)'] },
+      { node: 'scheduling', title: 'Recovery dispatch (most urgent first)', doing: 'Sorts by urgency, recovers order by order', out: 'processing order + schedule snapshot',
+        outputs: ['Processing order: the P0 first, then the P2s', 'Schedule snapshot: the technician on leave is fully unavailable', 'Rule: when one event releases several orders, the second plan that affects others is forced to approval'] },
+      { node: 'routes', title: 'Travel matrix (cache hit)', doing: 'Reads the cached travel matrix', out: 'travel-time matrix (cached)',
+        outputs: ['Travel matrix: served from the disk cache, no new query', 'Candidate technician to the customer: 19 minutes'] },
+      { node: 'solver', title: 'Bounded repair', doing: 'Direct insertion fails → bounded repair', out: 'repair plan (new assignment + relocated order)',
+        outputs: ['Qualified technicians: only 1 can take it', 'Direct insertion: 0 feasible (conflicts with an existing order)', 'Bounded repair: move one P2 order to another technician → feasible'] },
+      { node: 'validator', title: 'Validate the repair plan', doing: 'Checks constraints for the new and the moved order', out: 'validation result + affected-order set',
+        outputs: ['New assignment: still inside the customer’s window ✓', 'Moved order: still inside its original window ✓', 'Affected set: 1 order (technician changed); travel-only changes do not count'] },
+      { node: 'scorer', title: 'Match scoring', doing: 'Scores both the new and the moved order', out: 'match score per order + decision score (lowest)',
+        outputs: ['New assignment: 83.4', 'Moved order: 78.1 (stability penalty for changing technician)', 'Decision score: the lowest, 78.1'] },
+      { node: 'policy', title: 'Policy decision', doing: 'P0 affects another order → manual approval', out: 'decision (manual approval) + reasons',
+        outputs: ['Authority check: a P0 may affect up to 5 undeparted P2/P3 orders ✓', 'Score passes (78.1 > 70), but a P0 affecting others → manual approval', 'Reasons: written to the run record'] },
+      { node: 'orchestrator', title: 'Queue for approval, write nothing', doing: 'Stores the candidate plan, opens an approval case', out: 'pending candidate plan + human case',
+        outputs: ['Candidate plan: pending review, with base version and expiry', 'Order status: pending review', 'Human case: plan approval (policy required); console “pending human” +1'] },
+      { node: 'scheduling', title: 'Continue with the P2 orders', doing: 'Re-dispatches the P2s with zero disturbance, without waiting', out: 'auto-dispatch result for both P2s + new schedule version',
+        outputs: ['Both P2s: zero-disturbance insertion succeeds', '0 affected orders, scores > 70 → executed automatically', 'Schedule version v8 → v9; does not wait for the P0 approval'] },
+      { node: 'dispatcher', title: 'Review queue: approve & commit', doing: 'Reads the diff table, approves the plan', out: 'approval decision (approved)',
+        outputs: ['Diff table: which order changed technician, which only changed travel', 'Map highlights the affected order', 'On approval, re-validated inside the transaction: target not cancelled, not departed, version unchanged, hard constraints still hold'] },
+      { node: 'orchestrator', title: 'Commit the approved plan', doing: 'Writes the new schedule version', out: 'new schedule version + assignment changes + case closed',
+        outputs: ['Schedule version v9 → v10, reason “approved by dispatcher”', 'Assignment changes: the P0 order and the moved order each get a new technician', 'Human case: closed automatically'] },
+      { node: 'notify', title: 'Notifications', doing: 'Notifies two customers and three technicians', out: 'customer notifications ×2 + technician notifications ×3',
+        outputs: ['P0 customer: new technician and start time', 'Moved order’s customer: time adjusted, original window still respected', 'Technicians: new job / job released; delivery: simulated in-app'] },
+      { node: 'technician', title: 'All three apps sync (flow complete)', doing: 'Technician app / dispatch console / customer app refresh', out: 'consistent schedule state across all three apps',
+        outputs: ['Technician app: next job becomes the P0 order, banner “schedule updated”', 'Dispatch console: red P0 block, versions +1, pending human 0', 'Customer app: technician name updated'] },
+    ],
+  },
+  {
+    id: 'agent-escalate', name: 'No solution · agent runtime · human handoff',
+    summary: 'Scarce-resource scenario: the fast path finds no plan → an agent task is created → the model picks tools, the engine decides → asks the customer → hands off to a human with evidence → wakes up and finishes once the human resolves it.',
+    entry: 'customer message + location + preferred time window',
+    steps: [
+      { node: 'customer', title: 'New order (enters the system, scarce scenario)', doing: 'Places the order', out: 'order details (fault / location / window) + base priority',
+        outputs: ['Order details: clogged toilet, location, preferred time window', 'Catalog item: plumbing & bathroom L3, standard duration 45 min', 'Base priority: P3'] },
+      { node: 'orchestrator', title: 'Fast-path dispatch', doing: 'Creates the order and starts dispatch', out: 'work order + dispatch run record',
+        outputs: ['Work order: status OPEN, P3', 'Scenario: 32 orders in flight, 2 technicians on leave'] },
+      { node: 'scheduling', title: 'Load snapshot, filter qualified technicians', doing: 'Filters technicians by skill level', out: 'qualified technicians + their schedules',
+        outputs: ['Qualified technicians: 2 (skill level met)', 'Both are fully booked inside the customer’s window'] },
+      { node: 'solver', title: 'Zero-disturbance insertion trial', doing: 'Trials insertion position by position', out: 'trial result (no feasible slot) + rejection reasons',
+        outputs: ['Trials: 14 positions → 0 feasible', 'Rejection reasons: time window, shift, rest', 'P3 has no repair authority → no solution'] },
+      { node: 'policy', title: 'No candidate to decide on', doing: 'Marks the order unresolved', out: 'decision (unresolved) + alert',
+        outputs: ['Decision: unresolved', 'Dispatcher alert; customer app shows ETA pending'] },
+      { node: 'runtime', title: 'Create an agent task', doing: 'Deduplicates, sets budgets, starts the task', out: 'agent task + tool-call budget',
+        outputs: ['Dedupe key: one task per order per schedule version', 'Budget: 12 tool calls / 3 searches / 2 retries', 'The model decides outside the lock; each tool call is one short transaction'] },
+      { node: 'runtime', title: 'Model picks tools: read context → trial', doing: 'The model chooses, the engine executes', out: 'tool result (no zero-disturbance slot) + call trace',
+        outputs: ['Tool result: no solution, reason “no zero-disturbance slot”', 'Budget used: calls 2 / 12, searches 1 / 3', 'Call trace: planned → called → returned, each row persisted'] },
+      { node: 'solver', title: 'Search alternative windows', doing: 'Searches zero-disturbance alternative windows', out: 'alternative windows ×2 + technician for each',
+        outputs: ['Alternative windows: 2, each with a different technician', 'Zero disturbance: no existing order moves', 'Budget used: searches 2 / 3'] },
+      { node: 'runtime', title: 'Ask the customer', doing: 'Generates a structured question', out: 'customer question (2 options + none of these) + task paused',
+        outputs: ['Question: would either alternative time work?', 'Options: 2 windows + “none of these”', 'Task status: waiting for the customer'] },
+      { node: 'customer', title: 'Customer answers: none of these', doing: 'Answers the question', out: 'customer answer + task wake-up',
+        outputs: ['Answer: none of these', 'Task status: woken up, reason “customer answered”'] },
+      { node: 'humanq', title: 'Hand off to a human with evidence', doing: 'Bundles evidence and a suggestion into a human case', out: 'human case (category / evidence / attempted actions / suggestion)',
+        outputs: ['Category: no admissible slot', 'Evidence: 1 trial + 2 rejected windows; 3 attempted actions', 'Suggested next action: move one P3 or extend a shift', 'Task status: waiting for a human'] },
+      { node: 'dispatcher', title: 'Human queue: take → resolve', doing: 'Reschedules one P3 by hand, marks the case resolved', out: 'case resolved + task wake-up',
+        outputs: ['Dispatcher reschedules one P3 order manually', 'Marks the case resolved → the waiting task wakes up'] },
+      { node: 'runtime', title: 'Retry after wake-up', doing: 'Re-runs the trial and submits the plan', out: 'feasible plan + submission result (committed)',
+        outputs: ['Retry: a feasible slot is found, 0 affected', 'Submit plan: the engine re-validates, then commits', 'Budget used: calls 4 / 12; nothing degraded'] },
+      { node: 'orchestrator', title: 'Commit the schedule', doing: 'Writes the new version, closes the task', out: 'new schedule version + order status + task result',
+        outputs: ['Schedule version v4 → v5', 'Order status: assigned', 'Agent task: succeeded, 4 trace rows'] },
+      { node: 'notify', title: 'Notifications', doing: 'Notifies the customer, technician and dispatcher', out: 'customer + technician + dispatcher notifications',
+        outputs: ['Customer: technician and start time', 'Technician: new job; dispatcher: case closed', 'Delivery: simulated in-app'] },
+      { node: 'customer', title: 'Customer app refresh (flow complete)', doing: 'The order page refreshes', out: 'order status + technician + time + task trace',
+        outputs: ['Order page: assigned, technician name, start time', 'Console agent activity: the full call trace is available'] },
+    ],
+  },
+];
+
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+const tagOf = n => n.tag || KIND_LABEL[n.kind];
+const $ = s => document.querySelector(s);
+const svgNS = 'http://www.w3.org/2000/svg';
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const els = {
+  wrap: $('#stageWrap'), scaler: $('#scaler'), stage: $('#stage'), edgeLayer: $('#edgeLayer'), measure: $('#measure'),
+  nodes: $('#nodes'), chipIn: $('#chipIn'), chipOut: $('#chipOut'), token: $('#token'),
+  tabs: $('#tabs'), summary: $('#summary'), card: $('#card'), badge: $('#badge'), count: $('#count'),
+  nodeName: $('#nodeName'), nodeSub: $('#nodeSub'), stepTitle: $('#stepTitle'), stepDoing: $('#stepDoing'),
+  stepIn: $('#stepIn'), stepOut: $('#stepOut'), endNote: $('#endNote'), progress: $('#progress'), bar: $('#bar'),
+  steps: $('#steps'), btnPrev: $('#btnPrev'), btnPlay: $('#btnPlay'), btnNext: $('#btnNext'), btnReplay: $('#btnReplay'),
+  loopChk: $('#loopChk'), speed: $('#speed'),
+};
+
+/* ---------- geometry ---------- */
+function rectOf(n, active) {
+  const s = SIZE[n.kind];
+  return { x: n.x - s.w / 2, y: n.y - s.h / 2, w: s.w, h: s.h + (active ? ACTIVE_EXTRA[n.kind] : 0) };
+}
+function port(n, side) {
+  const s = SIZE[n.kind];
+  return { x: n.x, y: side === 'top' ? n.y - s.h / 2 : n.y + s.h / 2 };
+}
+/** Visible edge between two nodes: cross-row S-curve, same-row bow (above; below for the top row), or a self loop. */
+function edgeGeom(a, b) {
+  const key = `${a.id}>${b.id}`;
+  if (a.id === b.id) {
+    const dir = a.kind === 'actor' ? 1 : -1;
+    const p = port(a, dir < 0 ? 'top' : 'bottom');
+    return { key, start: p, end: p, rest: `C ${p.x - 48} ${p.y + dir * 82}, ${p.x + 48} ${p.y + dir * 82}, ${p.x} ${p.y}` };
+  }
+  if (a.y === b.y) {
+    const dir = a.kind === 'actor' ? 1 : -1;
+    const side = dir < 0 ? 'top' : 'bottom';
+    const pa = port(a, side), pb = port(b, side);
+    // a quadratic curve only reaches halfway to its control point, so the control offset is twice the wanted bow
+    const bow = 36 + Math.min(60, Math.abs(a.x - b.x) / 8);
+    return { key, start: pa, end: pb, rest: `Q ${(pa.x + pb.x) / 2} ${pa.y + dir * 2 * bow} ${pb.x} ${pb.y}` };
+  }
+  const down = b.y > a.y;
+  const pa = port(a, down ? 'bottom' : 'top'), pb = port(b, down ? 'top' : 'bottom');
+  const midY = (pa.y + pb.y) / 2;
+  return { key, start: pa, end: pb, rest: `C ${pa.x} ${midY}, ${pb.x} ${midY}, ${pb.x} ${pb.y}` };
+}
+const dOf = g => `M ${g.start.x} ${g.start.y} ${g.rest}`;
+const intersects = (r, o) => !(r.x + r.w < o.x || o.x + o.w < r.x || r.y + r.h < o.y || o.y + o.h < r.y);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const easeInOut = t => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+/* ---------- static render ---------- */
+NODES.forEach(n => {
+  const r = rectOf(n, false);
+  const el = document.createElement('div');
+  el.className = `node ${n.kind}`;
+  el.dataset.id = n.id;
+  el.style.left = r.x + 'px'; el.style.top = r.y + 'px'; el.style.width = r.w + 'px';
+  el.innerHTML = '<div class="k"></div><div class="l"></div><div class="s"></div><div class="d"><div><p></p></div></div>';
+  el.querySelector('.k').textContent = tagOf(n);
+  el.querySelector('.l').textContent = n.label;
+  el.querySelector('.s').textContent = n.sub;
+  els.nodes.appendChild(el);
+});
+const nodeEl = id => els.nodes.querySelector(`.node[data-id="${id}"]`);
+
+/* ---------- state ---------- */
+const S = { scen: null, steps: [], idx: 0, elapsed: 0, playing: true, loop: true, speed: 1, phase: '', tm: null,
+  dock: null, dockNext: null, len: 0, last: 0, stopped: false };
+
+function readTime(st) {
+  const text = st.title + st.doing + st.out + st.outputs.join('');
+  let units = 0;
+  for (const ch of text) units += /[　-鿿＀-￯]/.test(ch) ? 1.6 : 1;
+  return clamp(2000 + units * 21, 3600, 8500);
+}
+function timing(i) {
+  const st = S.steps[i], prev = i > 0 ? S.steps[i - 1] : null;
+  const isLast = i === S.steps.length - 1;
+  let T = i === 0 ? 1100 : (prev.node === st.node ? 520 : 780);
+  if (reduced) T = 200;
+  const R = readTime(st);
+  const HOLD = isLast ? 5200 : 0; // the flow visibly ends before it starts again
+  return { T, R, HOLD, total: T + R + HOLD, isLast };
+}
+
+function loadScenario(id) {
+  S.scen = SCEN.find(s => s.id === id) || SCEN[0];
+  S.steps = S.scen.steps;
+  els.summary.textContent = S.scen.summary;
+  els.tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.id === S.scen.id)));
+  // faint edges: every hop of this scenario, drawn once
+  els.edgeLayer.innerHTML = '';
+  const seen = new Set();
+  for (let i = 1; i < S.steps.length; i++) {
+    const g = edgeGeom(byId[S.steps[i - 1].node], byId[S.steps[i].node]);
+    if (seen.has(g.key)) continue;
+    seen.add(g.key);
+    const p = document.createElementNS(svgNS, 'path');
+    p.setAttribute('class', 'e'); p.setAttribute('d', dOf(g)); p.dataset.key = g.key;
+    els.edgeLayer.appendChild(p);
+  }
+  // step list
+  els.steps.innerHTML = '';
+  S.steps.forEach((st, i) => {
+    const n = byId[st.node];
+    const b = document.createElement('button');
+    b.className = 'step'; b.type = 'button';
+    b.innerHTML = '<span class="n"></span><span class="t"><span class="kk"></span><b></b><span class="tt"></span><span class="o"></span></span>';
+    b.querySelector('.n').textContent = i + 1;
+    b.querySelector('.kk').textContent = KIND_SHORT[n.kind]; b.querySelector('.kk').classList.add(n.kind);
+    b.querySelector('b').textContent = n.label;
+    b.querySelector('.tt').textContent = ' · ' + st.title;
+    b.querySelector('.o').textContent = 'Output → ' + st.out;
+    b.addEventListener('click', () => { goTo(i); });
+    els.steps.appendChild(b);
+  });
+  restart();
+}
+
+function restart() {
+  S.dock = null; S.stopped = false;
+  els.token.classList.remove('ping');
+  startStep(0);
+}
+
+function edgeByKey(key) { return els.edgeLayer.querySelector(`path.e[data-key="${key}"]`); }
+
+function startStep(i) {
+  S.idx = i; S.elapsed = 0; S.phase = ''; S.tm = timing(i);
+  const st = S.steps[i], prev = i > 0 ? S.steps[i - 1] : null, n = byId[st.node];
+  // silence everything, then light only the incoming edge
+  els.nodes.querySelectorAll('.node.active').forEach(e => { e.classList.remove('active'); e.querySelector('.k').textContent = tagOf(byId[e.dataset.id]); });
+  els.edgeLayer.querySelectorAll('path.e').forEach(p => p.classList.remove('lit', 'next'));
+  els.chipOut.classList.remove('show', 'end');
+  els.chipIn.classList.remove('dim');
+  nodeEl(st.node).querySelector('.d p').textContent = st.doing;
+
+  let inRect = null;
+  if (i === 0) {
+    const top = port(n, 'top');
+    S.travelD = `M ${n.x} -40 L ${top.x} ${top.y}`;
+    S.dockNext = top;
+    setChip(els.chipIn, '▶ ENTERS THE SYSTEM', S.scen.entry);
+    inRect = placeBeside(els.chipIn, n);
+  } else {
+    const g = edgeGeom(byId[prev.node], n);
+    const from = S.dock || port(byId[prev.node], 'top');
+    S.travelD = `M ${from.x} ${from.y} L ${g.start.x} ${g.start.y} ${g.rest}`;
+    S.dockNext = g.end;
+    const e = edgeByKey(g.key); if (e) e.classList.add('lit');
+    setChip(els.chipIn, 'INPUT', prev.out);
+    els.measure.setAttribute('d', dOf(g));
+    inRect = placeOnPath(els.chipIn, obstacles(st.node, null));
+  }
+  S.inRect = inRect;
+  els.measure.setAttribute('d', S.travelD);
+  S.len = els.measure.getTotalLength();
+  els.token.classList.remove('hidden');
+  renderRail();
+}
+
+function setChip(el, key, text) {
+  el.querySelector('.ck').textContent = key;
+  el.querySelector('.cv').textContent = text;
+  el.classList.add('show');
+}
+function obstacles(activeId, otherRect) {
+  const list = NODES.map(n => rectOf(n, n.id === activeId));
+  const d = S.dockNext; if (d) list.push({ x: d.x - 16, y: d.y - 16, w: 32, h: 32 });
+  if (otherRect) list.push(otherRect);
+  return list;
+}
+/** Put a chip on the path currently loaded in #measure, at the first sample point where it hits nothing. */
+function placeOnPath(el, avoid) {
+  const w = el.offsetWidth, h = el.offsetHeight, L = els.measure.getTotalLength();
+  const free = r => !avoid.some(o => intersects(r, o));
+  const rectAt = (x, y) => ({ x: clamp(x, w / 2 + 6, W - w / 2 - 6) - w / 2, y: clamp(y, h / 2 + 4, H - h / 2 - 4) - h / 2, w, h });
+  let best = null;
+  for (const t of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.2, 0.8, 0.15, 0.85]) {
+    const p = els.measure.getPointAtLength(L * t);
+    const r = rectAt(p.x, p.y);
+    if (!best) best = r;
+    if (free(r)) { best = r; break; }
+  }
+  if (!free(best)) {
+    // nothing along the edge is clear (two short hops in one band): stack the chip above or below the midpoint
+    const m = els.measure.getPointAtLength(L * 0.5);
+    for (const dy of [-(h + 8), h + 8, -2 * (h + 8), 2 * (h + 8)]) {
+      const r = rectAt(m.x, m.y + dy);
+      if (free(r)) { best = r; break; }
+    }
+  }
+  el.style.left = (best.x + best.w / 2) + 'px'; el.style.top = (best.y + best.h / 2) + 'px';
+  return best;
+}
+function placeBeside(el, n) {
+  const w = el.offsetWidth, h = el.offsetHeight, r = rectOf(n, true);
+  const right = n.x < W / 2;
+  const x = right ? r.x + r.w + 12 + w / 2 : r.x - 12 - w / 2;
+  const y = n.y;
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  return { x: x - w / 2, y: y - h / 2, w, h };
+}
+function placeEnd(el, n) {
+  const w = el.offsetWidth, h = el.offsetHeight, r = rectOf(n, true);
+  const below = n.kind !== 'tool';
+  const y = below ? r.y + r.h + 14 + h / 2 : r.y - 14 - h / 2;
+  const x = clamp(n.x, w / 2 + 6, W - w / 2 - 6);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+
+function setToken(p) { els.token.setAttribute('transform', `translate(${p.x} ${p.y})`); }
+
+function activate(st, n) {
+  const el = nodeEl(st.node);
+  el.classList.add('active');
+  el.querySelector('.k').textContent = tagOf(n) + ' · ' + ACTIVE_SUFFIX[n.kind];
+}
+
+/* ---------- clock ---------- */
+function frame(ts) {
+  const dt = Math.min(100, ts - (S.last || ts)); S.last = ts;
+  if (S.playing && !S.stopped) S.elapsed += dt * S.speed;
+  render();
+  if (S.playing && !S.stopped && S.elapsed >= S.tm.total) advance();
+  requestAnimationFrame(frame);
+}
+function render() {
+  const { T, R, HOLD, total, isLast } = S.tm, e = S.elapsed;
+  const st = S.steps[S.idx], n = byId[st.node];
+  if (e < T) {
+    S.phase = 'travel';
+    const k = S.idx === 0 ? easeOut(e / T) : easeInOut(e / T);
+    setToken(els.measure.getPointAtLength(S.len * k));
+    els.bar.style.width = '0%';
+    return;
+  }
+  if (S.phase === 'travel' || S.phase === '') {
+    S.phase = 'work';
+    setToken(S.dockNext); S.dock = S.dockNext;
+    activate(st, n);
+    if (S.idx === 0 && !reduced) { els.token.classList.remove('ping'); void els.token.getBoundingClientRect(); els.token.classList.add('ping'); }
+  }
+  const pr = clamp((e - T) / R, 0, 1);
+  els.bar.style.width = (pr * 100) + '%';
+  if (S.phase === 'work' && e >= T + 0.4 * R) {
+    S.phase = 'out';
+    els.chipIn.classList.add('dim');
+    if (!isLast) {
+      const nxt = byId[S.steps[S.idx + 1].node];
+      const g = edgeGeom(n, nxt);
+      const ne = edgeByKey(g.key); if (ne) ne.classList.add('next');
+      els.chipOut.classList.remove('end');
+      setChip(els.chipOut, 'OUTPUT', st.out);
+      els.measure.setAttribute('d', dOf(g));
+      placeOnPath(els.chipOut, obstacles(st.node, S.inRect));
+      els.measure.setAttribute('d', S.travelD);
+    } else {
+      els.chipOut.classList.add('end');
+      setChip(els.chipOut, '✓ FLOW COMPLETE', st.out);
+      placeEnd(els.chipOut, n);
+    }
+  }
+  if (isLast && e >= T + R) {
+    if (S.phase !== 'hold') { S.phase = 'hold'; els.progress.classList.add('hold'); }
+    const left = Math.max(0, Math.ceil((total - e) / 1000));
+    els.bar.style.width = (clamp((e - T - R) / HOLD, 0, 1) * 100) + '%';
+    els.endNote.textContent = S.loop ? `✓ Flow complete · replaying from the start in ${left} s` : '✓ Flow complete · press Replay to watch it again';
+    els.chipOut.querySelector('.ck').textContent = S.loop ? `✓ FLOW COMPLETE · REPLAY IN ${left} s` : '✓ FLOW COMPLETE';
+  }
+}
+function advance() {
+  if (!S.tm.isLast) startStep(S.idx + 1);
+  else if (S.loop) restart();
+  else { S.stopped = true; S.playing = false; syncPlayBtn(); }
+}
+function goTo(i) {
+  S.stopped = false;
+  if (i === 0) { restart(); return; }
+  S.dock = null;
+  els.progress.classList.remove('hold');
+  startStep(i);
+}
+
+/* ---------- rail ---------- */
+function renderRail() {
+  const i = S.idx, st = S.steps[i], n = byId[st.node], prev = i > 0 ? S.steps[i - 1] : null;
+  els.card.className = `card now ${n.kind}`;
+  els.badge.className = `badge ${n.kind}`; els.badge.textContent = KIND_BADGE[n.kind];
+  els.count.textContent = `Step ${i + 1} / ${S.steps.length}`;
+  els.nodeName.textContent = n.label; els.nodeSub.textContent = n.sub;
+  els.stepTitle.textContent = st.title; els.stepDoing.textContent = st.doing;
+  els.stepIn.textContent = prev ? prev.out : 'Enters the system: ' + S.scen.entry;
+  els.stepOut.innerHTML = '';
+  st.outputs.forEach(o => { const li = document.createElement('li'); li.textContent = o; els.stepOut.appendChild(li); });
+  els.endNote.textContent = '';
+  els.progress.classList.remove('hold'); els.bar.style.width = '0%';
+  els.btnPrev.disabled = i === 0; els.btnNext.disabled = i === S.steps.length - 1;
+  els.steps.querySelectorAll('.step').forEach((b, j) => {
+    b.className = 'step ' + (j < i ? 'done' : j === i ? 'now' : 'todo');
+    if (j === i) b.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+  });
+}
+function syncPlayBtn() { els.btnPlay.textContent = S.playing ? '⏸ Pause' : '▶ Play'; }
+function togglePlay() {
+  if (S.stopped) { restart(); S.playing = true; }
+  else S.playing = !S.playing;
+  syncPlayBtn();
+}
+
+/* ---------- controls ---------- */
+SCEN.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'tab'; b.type = 'button'; b.textContent = s.name; b.dataset.id = s.id;
+  b.addEventListener('click', () => { loadScenario(s.id); S.playing = true; syncPlayBtn(); });
+  els.tabs.appendChild(b);
+});
+els.btnPrev.addEventListener('click', () => goTo(Math.max(0, S.idx - 1)));
+els.btnNext.addEventListener('click', () => goTo(Math.min(S.steps.length - 1, S.idx + 1)));
+els.btnPlay.addEventListener('click', togglePlay);
+els.btnReplay.addEventListener('click', () => { restart(); S.playing = true; syncPlayBtn(); });
+els.loopChk.addEventListener('change', () => { S.loop = els.loopChk.checked; });
+els.speed.addEventListener('change', () => { S.speed = Number(els.speed.value) || 1; });
+window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight') goTo(Math.min(S.steps.length - 1, S.idx + 1));
+  else if (e.key === 'ArrowLeft') goTo(Math.max(0, S.idx - 1));
+  else if (e.key === 'r' || e.key === 'R') { restart(); S.playing = true; syncPlayBtn(); }
+});
+
+/* ---------- fit the 1240×640 stage to the available width (min 0.6 → scrolls on phones) ---------- */
+function fit() {
+  const avail = els.wrap.clientWidth - 2;
+  const k = Math.max(0.6, Math.min(1, avail / W));
+  els.scaler.style.width = (W * k) + 'px'; els.scaler.style.height = (H * k) + 'px';
+  els.stage.style.transform = `scale(${k})`;
+}
+window.addEventListener('resize', fit);
+fit();
+loadScenario(SCEN[0].id);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TechSched 调度漏斗</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+</head>
+<body style="margin:0">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f1f3f6; --surface: #ffffff; --surface-2: #f7f8fa; --ink: #161a20; --ink-2: #59616f; --ink-3: #8a919e;
+    --line: #dde1e8; --line-2: #eceff3;
+    --accent: #2a78d6; --accent-soft: #e4eefb; --accent-ink: #1b5aa8;
+    --blk: #cfd5df; --blk-ink: #2a303c; --blk-lock: #a6aebd; --blk-done: #e4e7ec;
+    --p0: #d03b3b; --p1: #eb6834; --p2: #eda100; --p3: #7d8797;
+    --good: #0ca30c; --good-soft: #e3f5e3; --warn: #fab219; --warn-ink: #8a5a00; --warn-soft: #fff3d6; --crit: #d03b3b; --crit-soft: #fbe3e3;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+    --unavail: #f7caca; --shift: #eef0f4;
+    --shadow: 0 1px 2px rgba(20, 30, 50, .06), 0 6px 20px rgba(20, 30, 50, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #111316; --surface: #1a1d22; --surface-2: #21252c; --ink: #eef0f3; --ink-2: #a9b0bc; --ink-3: #7d8593;
+      --line: #2c3139; --line-2: #262a31;
+      --accent: #3987e5; --accent-soft: #1b2a41; --accent-ink: #8fbcf3;
+      --blk: #3d4453; --blk-ink: #e3e7ee; --blk-lock: #566072; --blk-done: #2a2f38;
+      --p3: #6d7787;
+      --good-soft: #17301a; --warn-ink: #f5c453; --warn-soft: #3a2d0f; --crit-soft: #3d1c1c;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+      --unavail: #4a2424; --shift: #22262d;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .35);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111316; --surface: #1a1d22; --surface-2: #21252c; --ink: #eef0f3; --ink-2: #a9b0bc; --ink-3: #7d8593;
+    --line: #2c3139; --line-2: #262a31;
+    --accent: #3987e5; --accent-soft: #1b2a41; --accent-ink: #8fbcf3;
+    --blk: #3d4453; --blk-ink: #e3e7ee; --blk-lock: #566072; --blk-done: #2a2f38;
+    --p3: #6d7787;
+    --good-soft: #17301a; --warn-ink: #f5c453; --warn-soft: #3a2d0f; --crit-soft: #3d1c1c;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+    --unavail: #4a2424; --shift: #22262d;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'IBM Plex Sans', 'Noto Sans SC', -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    font-size: 13px; line-height: 1.45;
+  }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .num { font-family: 'Manrope', 'IBM Plex Sans', sans-serif; font-variant-numeric: tabular-nums; }
+
+  .app { height: 100%; display: flex; flex-direction: column; gap: 10px; padding-inline: 16px; padding-block: 10px; }
+
+  /* ---------- header ---------- */
+  header { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: baseline; gap: 10px; }
+  .brand h1 { margin: 0; font: 800 18px/1.1 'Manrope', 'Noto Sans SC', sans-serif; letter-spacing: -.01em; }
+  .brand .sub { color: var(--ink-3); font: 500 11px/1 'IBM Plex Mono', monospace; letter-spacing: .02em; }
+  .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .tabs button { border: 0; background: transparent; color: var(--ink-2); font: 500 12px/1 'IBM Plex Sans', 'Noto Sans SC', sans-serif; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: var(--surface); }
+  .tabs button:focus-visible, .ctl button:focus-visible, .step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ctl { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .ctl button, .ctl select, .ctl label { height: 30px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 0 10px; font: 500 12px/1 'IBM Plex Sans', 'Noto Sans SC', sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .ctl button.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 74px; justify-content: center; }
+  .ctl button:disabled { opacity: .4; cursor: default; }
+  .ctl kbd { font: 500 10px/1 'IBM Plex Mono', monospace; color: var(--ink-3); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+  .hidden-ctl header .ctl, .hidden-ctl .steps { display: none; }
+
+  /* ---------- main ---------- */
+  .main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 392px; gap: 12px; }
+  .stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-height: 0; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .stage-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .pills { display: flex; gap: 4px; }
+  .pill { font-size: 11px; letter-spacing: .04em; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; background: var(--surface-2); display: inline-flex; gap: 6px; align-items: center; }
+  .pill i { font-style: normal; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 10px; color: var(--ink-3); }
+  .pill.on { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+  .pill.on i { color: var(--accent-ink); }
+  .pill.done { color: var(--ink-2); }
+  .pill.done i { color: var(--good); }
+  .pill.skip { text-decoration: line-through; opacity: .55; }
+  .stage-top .ver { margin-left: auto; font-size: 11px; color: var(--ink-3); }
+  .stage-top .ver b { color: var(--ink); font-family: 'Manrope', sans-serif; }
+  .svgwrap { flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; }
+  svg#gantt { width: 100%; min-width: 720px; height: auto; max-height: 100%; display: block; }
+
+  .panel { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 2px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 8px; font: 700 10.5px/1 'IBM Plex Sans', 'Noto Sans SC', sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+  .card h3 .src { margin-left: auto; font: 400 10px/1 'IBM Plex Mono', monospace; letter-spacing: 0; text-transform: none; color: var(--ink-3); }
+
+  /* narration */
+  .narr { border-color: var(--accent); }
+  .narr .k { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .narr .agent { font: 700 11px/1 'IBM Plex Mono', monospace; color: var(--accent-ink); background: var(--accent-soft); border-radius: 6px; padding: 4px 7px; }
+  .narr .idx { font-size: 11px; color: var(--ink-3); }
+  .narr h2 { margin: 8px 0 6px; font: 700 15px/1.3 'Manrope', 'Noto Sans SC', sans-serif; text-wrap: balance; }
+  .narr ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .narr li { display: flex; gap: 8px; font-size: 12px; line-height: 1.45; }
+  .narr li::before { content: '›'; color: var(--ink-3); flex: none; }
+  .narr li code { font: 500 11.5px/1.45 'IBM Plex Mono', monospace; color: var(--ink); background: var(--surface-2); border-radius: 4px; padding: 0 4px; }
+  .narr .prog { margin-top: 10px; height: 3px; background: var(--line-2); border-radius: 2px; overflow: hidden; }
+  .narr .prog i { display: block; height: 100%; width: 0; background: var(--accent); }
+  .narr .prog i.run { animation: prog linear forwards; }
+  @keyframes prog { from { width: 0 } to { width: 100% } }
+
+  /* funnel */
+  .funnel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tile { background: var(--surface-2); border-radius: 8px; padding: 8px 8px 7px; position: relative; }
+  .tile .l { font-size: 10px; color: var(--ink-3); letter-spacing: .04em; }
+  .tile .v { font: 800 22px/1.1 'Manrope', sans-serif; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .tile .v.dash { color: var(--ink-3); font-weight: 500; }
+  .tile .v.bump { animation: bump .28s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.18); color: var(--accent) } 100% { transform: none } }
+  .tile + .tile::before { content: '→'; position: absolute; left: -9px; top: 50%; transform: translateY(-50%); color: var(--ink-3); font-size: 11px; }
+  .tile .v.auto { color: var(--good) } .tile .v.manual { color: var(--warn) } .tile .v.forbidden { color: var(--crit) }
+  .rej { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; min-height: 22px; }
+  .chip { font: 500 10.5px/1 'IBM Plex Mono', monospace; padding: 4px 7px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); border: 1px solid transparent; }
+  .chip.ok { background: var(--good-soft); color: var(--good); }
+  .chip.auth { background: var(--warn-soft); color: var(--warn-ink); }
+  .chip b { font-weight: 500; opacity: .75; }
+  .rej .empty { font-size: 11px; color: var(--ink-3); }
+
+  /* scores */
+  .cands { display: flex; flex-direction: column; gap: 7px; }
+  .cand { display: grid; grid-template-columns: 118px 1fr 40px; align-items: center; gap: 8px; }
+  .cand .who { font-size: 11.5px; line-height: 1.25; }
+  .cand .who small { display: block; color: var(--ink-3); font-size: 10px; font-family: 'IBM Plex Mono', monospace; }
+  .cand .bar { position: relative; height: 16px; background: var(--surface-2); border-radius: 4px; display: flex; gap: 2px; overflow: visible; }
+  .cand .bar span { display: block; height: 100%; transition: width .6s cubic-bezier(.2,.7,.2,1); }
+  .cand .bar span:first-child { border-radius: 4px 0 0 4px; }
+  .cand .bar span:last-child { border-radius: 0 4px 4px 0; }
+  .cand .bar::after { content: ''; position: absolute; left: 70%; top: -4px; bottom: -4px; border-left: 2px dashed var(--ink-2); pointer-events: none; }
+  .cand .tot { font: 700 14px/1 'Manrope', sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+  .cand.low .tot { color: var(--ink-3); }
+  .cand.chosen .who { font-weight: 600; }
+  .cand.chosen .bar { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  .cand.min .bar { outline: 2px solid var(--warn); outline-offset: 2px; border-radius: 4px; }
+  .cand.min .tot { color: var(--warn-ink); }
+  .s-1 { background: var(--s1) } .s-2 { background: var(--s2) } .s-3 { background: var(--s3) } .s-4 { background: var(--s4) } .s-5 { background: var(--s5) }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: 10.5px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+  .legend .thr { margin-left: auto; color: var(--ink-2); }
+  .dscore { margin-top: 8px; font: 500 11.5px/1.4 'IBM Plex Mono', monospace; color: var(--ink); background: var(--surface-2); border-radius: 6px; padding: 6px 8px; }
+  .dscore.min { background: var(--warn-soft); }
+  .scores .empty, .strat .empty { font-size: 11px; color: var(--ink-3); }
+
+  /* strategies */
+  .strats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+  .st { border: 1px solid var(--line); border-radius: 8px; padding: 8px 9px; background: var(--surface-2); }
+  .st.chosen { border-color: var(--accent); background: var(--accent-soft); }
+  .st .tags { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 5px; }
+  .st .tag { font: 500 9.5px/1 'IBM Plex Mono', monospace; color: var(--accent-ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+  .st .who { font-size: 12px; font-weight: 600; }
+  .st .m { display: flex; gap: 8px; margin-top: 4px; font-size: 10.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .st .m b { color: var(--ink); font-family: 'Manrope', sans-serif; }
+  .st .note { margin-top: 5px; font-size: 10.5px; color: var(--ink-3); }
+
+  /* authority */
+  .auth table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .auth th { text-align: left; font-weight: 500; color: var(--ink-3); font-size: 10px; letter-spacing: .04em; padding: 0 6px 4px; }
+  .auth td { padding: 5px 6px; border-top: 1px solid var(--line-2); font-variant-numeric: tabular-nums; }
+  .auth tr.on td { background: var(--accent-soft); }
+  .auth tr.on td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .auth td.p { font: 700 11px/1 'IBM Plex Mono', monospace; }
+  .auth .P0 { color: var(--p0) } .auth .P1 { color: var(--p1) } .auth .P2 { color: var(--warn-ink) } .auth .P3 { color: var(--ink-2) }
+  .gate { margin-top: 10px; border-radius: 10px; padding: 10px 12px; border: 1px solid var(--line); background: var(--surface-2); transition: background .4s, border-color .4s; }
+  .gate .g { font: 800 15px/1 'Manrope', sans-serif; letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+  .gate .g i { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-3); display: inline-block; }
+  .gate.auto { background: var(--good-soft); border-color: var(--good); } .gate.auto .g { color: var(--good) } .gate.auto .g i { background: var(--good) }
+  .gate.manual { background: var(--warn-soft); border-color: var(--warn); } .gate.manual .g { color: var(--warn-ink) } .gate.manual .g i { background: var(--warn) }
+  .gate.forbidden { background: var(--crit-soft); border-color: var(--crit); } .gate.forbidden .g { color: var(--crit) } .gate.forbidden .g i { background: var(--crit) }
+  .gate ul { margin: 6px 0 0; padding: 0; list-style: none; font: 400 11px/1.45 'IBM Plex Mono', monospace; color: var(--ink-2); }
+  .gate li::before { content: '· '; }
+  .gate .g.idle { color: var(--ink-3); font-weight: 600; font-size: 12px; }
+
+  /* steps strip */
+  .steps { display: flex; gap: 6px; overflow-x: auto; padding-block: 2px 4px; scrollbar-width: thin; }
+  .step { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 8px; padding: 6px 9px; font: 500 11px/1.2 'IBM Plex Sans', 'Noto Sans SC', sans-serif; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; max-width: 220px; text-align: left; }
+  .step .n { font: 700 10px/1 'Manrope', sans-serif; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .step.done { color: var(--ink-3); } .step.done .n { background: var(--line); border-color: var(--line); color: var(--ink-2); }
+  .step.now { border-color: var(--accent); color: var(--ink); background: var(--accent-soft); } .step.now .n { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .step .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ---------- svg ---------- */
+  .row-lab { font: 600 11.5px 'IBM Plex Sans', sans-serif; fill: var(--ink); }
+  .row-sk { font: 400 8.5px 'IBM Plex Mono', monospace; fill: var(--ink-3); }
+  .rowg { transition: opacity .5s; }
+  .rowg.dim { opacity: .22; }
+  .rowg.hl .row-lab { fill: var(--accent-ink); }
+  .axis { font: 500 9.5px 'IBM Plex Mono', monospace; fill: var(--ink-3); }
+  .grid { stroke: var(--line-2); }
+  .shiftband { fill: var(--shift); }
+  .blk { transition: transform .85s cubic-bezier(.2,.7,.2,1), opacity .4s; }
+  .blk rect { rx: 3; stroke-width: 1; transition: fill .4s, stroke .4s; }
+  .blk text { font: 500 8.5px 'IBM Plex Mono', monospace; pointer-events: none; }
+  .blk.p3 rect { fill: var(--blk); stroke: var(--blk); } .blk.p3 text { fill: var(--blk-ink); }
+  .blk.p2 rect { fill: var(--p2); stroke: var(--p2); } .blk.p2 text { fill: #1a1a1a; }
+  .blk.p1 rect { fill: var(--p1); stroke: var(--p1); } .blk.p1 text { fill: #fff; }
+  .blk.p0 rect { fill: var(--p0); stroke: var(--p0); } .blk.p0 text { fill: #fff; }
+  .blk.done rect { fill: var(--blk-done); stroke: var(--blk-done); } .blk.done text { fill: var(--ink-3); }
+  .blk.locked rect { stroke: var(--blk-ink); stroke-width: 1.4; }
+  .blk.locked .lock { fill: var(--blk-ink); }
+  .blk.released rect { fill: transparent; stroke: var(--crit); stroke-dasharray: 4 3; stroke-width: 1.4; } .blk.released text { fill: var(--crit); }
+  .blk.moved rect { fill: var(--accent); stroke: var(--accent); } .blk.moved text { fill: #fff; }
+  .blk.pending rect { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: 4 3; stroke-width: 1.4; } .blk.pending text { fill: var(--accent-ink); }
+  .blk.committed rect { fill: var(--accent); stroke: var(--accent); } .blk.committed text { fill: #fff; }
+  .blk.committed.p0 rect { fill: var(--p0); stroke: var(--p0); }
+  .blk.ghost-ok rect { fill: var(--good-soft); stroke: var(--good); stroke-dasharray: 4 3; stroke-width: 1.4; } .blk.ghost-ok text { fill: var(--good); }
+  .blk.ghost-auth rect { fill: transparent; stroke: var(--warn); stroke-dasharray: 2 3; stroke-width: 1.4; } .blk.ghost-auth text { fill: var(--warn-ink); }
+  .blk.ghost-auth text.strike { text-decoration: line-through; }
+  .blk.faint { opacity: .45; }
+  .badge { font: 700 8px 'IBM Plex Mono', monospace; }
+  .badge rect { rx: 7; }
+  .badge.P0 rect { fill: var(--p0) } .badge.P2 rect { fill: var(--p2) } .badge text { fill: #fff } .badge.P2 text { fill: #1a1a1a }
+  .trial rect { rx: 3; fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 5 3; }
+  .trial.rej rect { fill: var(--crit-soft); stroke: var(--crit); animation: shake .32s ease-out; }
+  .trial.ok rect { fill: var(--good-soft); stroke: var(--good); }
+  .trial.auth rect { fill: var(--warn-soft); stroke: var(--warn); }
+  .trial text { font: 600 8.5px 'IBM Plex Mono', monospace; fill: var(--accent-ink); }
+  .trial.rej text { fill: var(--crit) } .trial.ok text { fill: var(--good) } .trial.auth text { fill: var(--warn-ink) }
+  .trial .code { font-weight: 700; }
+  @keyframes shake { 0% { transform: translateX(0) } 30% { transform: translateX(-2px) } 60% { transform: translateX(2px) } 100% { transform: translateX(0) } }
+  .nowline { stroke: var(--crit); stroke-width: 1.2; stroke-dasharray: 3 3; }
+  .nowlab { font: 700 9px 'IBM Plex Mono', monospace; fill: var(--crit); }
+  .unav { fill: var(--unavail); }
+  .tcard rect.bg { fill: var(--surface-2); stroke: var(--line); rx: 8; }
+  .tcard.live rect.bg { stroke: var(--accent); stroke-width: 1.4; fill: var(--accent-soft); }
+  .tcard .id { font: 700 11px 'IBM Plex Mono', monospace; fill: var(--ink); }
+  .tcard .d { font: 400 9px 'IBM Plex Sans', 'Noto Sans SC', sans-serif; fill: var(--ink-2); }
+  .tcard .pri { font: 700 9px 'IBM Plex Mono', monospace; fill: #fff; }
+  .tcard .pri-bg { rx: 6; }
+  .arc { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 5 4; opacity: 0; transition: opacity .4s; marker-end: url(#arrow); }
+  .arc.show { opacity: 1; }
+  .winlab { font: 500 8.5px 'IBM Plex Mono', monospace; fill: var(--good); }
+  .winline { stroke: var(--good); stroke-width: 1.2; }
+  .cap { font: 500 9px 'IBM Plex Sans', 'Noto Sans SC', sans-serif; fill: var(--ink-3); }
+  .stagecap { font: 700 9.5px 'IBM Plex Mono', monospace; fill: var(--accent-ink); }
+
+  @media (max-width: 980px) {
+    .app { height: auto; }
+    .main { grid-template-columns: 1fr; }
+    .panel { overflow: visible; }
+    .funnel { grid-template-columns: repeat(2, 1fr); }
+    .tile + .tile::before { display: none; }
+    .cand { grid-template-columns: 96px 1fr 36px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .blk, .cand .bar span, .gate, .rowg, .arc { transition: none; }
+    .tile .v.bump, .trial.rej rect { animation: none; }
+  }
+</style>
+
+<div class="app" id="app">
+  <header>
+    <div class="brand">
+      <h1>调度漏斗</h1>
+      <span class="sub">solve_insert · bounded search</span>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="ctl">
+      <button id="btnPrev" title="上一步 (←)">◀</button>
+      <button id="btnPlay" class="primary" title="播放 / 暂停 (空格)">⏸ 暂停</button>
+      <button id="btnNext" title="下一步 (→)">▶</button>
+      <button id="btnRestart" title="重播 (R)">⟲</button>
+      <select id="speed" title="速度"><option value="0.6">0.6×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+      <label><input type="checkbox" id="loop" checked> 循环</label>
+      <button id="btnHide" title="隐藏控件，便于录屏 (H)">录屏模式 <kbd>H</kbd></button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="stage" aria-label="甘特图舞台">
+      <div class="stage-top">
+        <div class="pills" id="pills"></div>
+        <div class="ver" id="ver"></div>
+      </div>
+      <div class="svgwrap"><svg id="gantt" viewBox="0 0 1000 452" role="img" aria-label="技师排班甘特图，展示求解器逐位置试插的过程"></svg></div>
+    </section>
+
+    <aside class="panel">
+      <div class="card narr" id="narr"></div>
+      <div class="card">
+        <h3>漏斗 <span class="src">SolveResult</span></h3>
+        <div class="funnel" id="funnel"></div>
+        <div class="rej" id="rej"></div>
+      </div>
+      <div class="card scores">
+        <h3>五项匹配分 <span class="src">score_assignment</span></h3>
+        <div id="scores"></div>
+      </div>
+      <div class="card strat">
+        <h3>策略 <span class="src">select_strategies</span></h3>
+        <div id="strats"></div>
+      </div>
+      <div class="card auth">
+        <h3>权限裁决 <span class="src">PolicyEngine.decide</span></h3>
+        <div id="auth"></div>
+      </div>
+    </aside>
+  </div>
+
+  <nav class="steps" id="steps" aria-label="步骤"></nav>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const M = s => { const [h, mi] = s.split(':').map(Number); return h * 60 + mi; };
+  const F = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  const $ = id => document.getElementById(id);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ------------------------------------------------------------------ roster & baseline (illustrative, mirrors scenario "main")
+  const TECHS = [
+    { id: 'tech_01', name: 'Chen Wei', skills: 'Plumbing L4 · Elec L2' },
+    { id: 'tech_02', name: 'Bala Krishnan', skills: 'AirCon L3 · Fridge L2' },
+    { id: 'tech_03', name: 'Devi Nair', skills: 'Locks L3 · Elec L2' },
+    { id: 'tech_04', name: 'Gopal Raj', skills: 'AirCon L2 · Plumb L2' },
+    { id: 'tech_05', name: 'Hana Lim', skills: 'Elec L3 · Locks L1' },
+    { id: 'tech_06', name: 'Farah Osman', skills: 'Locks L2 · Elec L2' },
+    { id: 'tech_07', name: 'Aaron Teo', skills: 'AirCon L4' },
+    { id: 'tech_08', name: 'Ethan Koh', skills: 'Plumbing L3 · Fridge L3' },
+  ];
+  const B = (id, tech, s, e, loc) => ({ id, tech, s: M(s), e: M(e), loc, pri: 'P3' });
+  const BASE = [
+    B('wo_002', 'tech_01', '08:20', '09:20', 'Bedok'), B('wo_004', 'tech_01', '10:00', '11:00', 'Simei'), B('wo_025', 'tech_01', '13:00', '14:00', 'Tampines'), B('wo_026', 'tech_01', '15:30', '16:30', 'Bedok'),
+    B('wo_003', 'tech_02', '09:40', '10:25', 'Pasir Ris'), B('wo_008', 'tech_02', '11:30', '12:15', 'Bedok'), B('wo_014', 'tech_02', '14:00', '15:00', 'Tampines'), B('wo_017', 'tech_02', '15:30', '16:15', 'Simei'),
+    B('wo_009', 'tech_03', '09:45', '10:20', 'Sengkang'), B('wo_012', 'tech_03', '10:50', '11:50', 'Hougang'), B('wo_023', 'tech_03', '13:30', '14:30', 'Punggol'), B('wo_024', 'tech_03', '16:00', '17:00', 'Sengkang'),
+    B('wo_005', 'tech_04', '08:50', '09:35', 'Hougang'), B('wo_010', 'tech_04', '09:50', '10:50', 'Sengkang'), B('wo_016', 'tech_04', '12:30', '13:15', 'Punggol'), B('wo_018', 'tech_04', '15:30', '16:15', 'Tampines'),
+    B('wo_007', 'tech_05', '10:00', '11:00', 'Kovan'), B('wo_027', 'tech_05', '12:30', '13:30', 'Hougang'), B('wo_028', 'tech_05', '14:30', '15:15', 'Serangoon'),
+    B('wo_029', 'tech_06', '09:00', '09:45', 'Punggol'), B('wo_021', 'tech_06', '10:30', '11:00', 'Punggol'), B('wo_015', 'tech_06', '13:00', '13:45', 'Sengkang'), B('wo_019', 'tech_06', '14:30', '15:15', 'Punggol'),
+    B('wo_001', 'tech_07', '08:20', '09:10', 'Bedok'), B('wo_006', 'tech_07', '09:30', '10:30', 'Tampines'), B('wo_011', 'tech_07', '12:00', '13:00', 'Simei'), B('wo_013', 'tech_07', '13:30', '14:30', 'Pasir Ris'), B('wo_020', 'tech_07', '16:00', '17:00', 'Tampines'),
+    B('wo_030', 'tech_08', '09:00', '10:00', 'Yishun'), B('wo_031', 'tech_08', '11:00', '12:00', 'Sembawang'), B('wo_032', 'tech_08', '14:00', '15:00', 'Yishun'),
+  ];
+
+  const COMP = ['skill_fit', 'travel', 'response', 'workload', 'stability'];
+  const W = [0.30, 0.25, 0.20, 0.10, 0.15];
+  const AUTH_ROWS = [
+    { p: 'P0', movable: 'P2, P3', max: '5', note: '动了就要审批' },
+    { p: 'P1', movable: 'P3', max: '无上限', note: '付费加急' },
+    { p: 'P2', movable: '—', max: '0', note: '仅零扰动补派' },
+    { p: 'P3', movable: '—', max: '0', note: '不能动任何人' },
+  ];
+  const STAGES = [['search', '搜索'], ['validate', '校验'], ['score', '打分'], ['policy', '裁决'], ['commit', '提交']];
+
+  // trial: [tech, start, end, verdict, code, note]   verdict: ok | rej | auth
+  const T = (tech, s, e, v, code, note) => ({ tech, s: M(s), e: M(e), v, code, note });
+
+  // ------------------------------------------------------------------ scenario 1 · P3 direct insertion → AUTO
+  const S1_TRIALS = [
+    T('tech_02', '09:30', '10:15', 'rej', 'window_late', 'wo_003 → 10:23 > 10:00'),
+    T('tech_02', '10:33', '11:18', 'ok', null, 'travel 8'),
+    T('tech_02', '12:23', '13:08', 'rej', 'window_late', '12:23 > 11:30'),
+    T('tech_02', '15:08', '15:53', 'rej', 'window_late'),
+    T('tech_02', '16:25', '17:10', 'rej', 'window_late'),
+    T('tech_04', '09:30', '10:15', 'rej', 'window_late', 'wo_005 → 10:30'),
+    T('tech_04', '09:50', '10:35', 'rej', 'window_late', 'wo_010 → 10:45'),
+    T('tech_04', '11:05', '11:50', 'ok', null, 'travel 15'),
+    T('tech_04', '13:30', '14:15', 'rej', 'window_late'),
+    T('tech_04', '16:25', '17:10', 'rej', 'window_late'),
+    T('tech_07', '09:30', '10:15', 'auth', 'authority', 'affected 2 > 0'),
+    T('tech_07', '10:35', '11:20', 'ok', null, 'travel 5'),
+    T('tech_07', '13:08', '13:53', 'rej', 'window_late'),
+    T('tech_07', '14:38', '15:23', 'rej', 'window_late'),
+    T('tech_07', '17:20', '18:05', 'rej', 'after_shift', '18:05 > 18:00'),
+  ];
+  const S1_SCORES = [
+    { who: 'Aaron Teo', when: 'tech_07 · 10:35', comps: [27.0, 22.9, 9.2, 4.5, 15.0], total: 78.6, chosen: true },
+    { who: 'Bala Krishnan', when: 'tech_02 · 10:33', comps: [24.0, 21.7, 9.5, 5.0, 15.0], total: 75.2 },
+    { who: 'Gopal Raj', when: 'tech_04 · 11:05', comps: [21.0, 18.8, 4.2, 6.0, 15.0], total: 65.0, low: true },
+  ];
+  const S1 = {
+    id: 'p3-auto', name: 'P3 普通单 · 直接插入 · 自动派单', now: M('08:30'), version: 7,
+    summary: '一张普通空调单进入系统。P3 没有移动别人的权限，所以求解器只做第一阶段：对每位合格技师的每个位置试插一次，可行的进入打分，最高分且过阈值 → 自动提交。',
+    locked: ['wo_001', 'wo_002'], hide: ['wo_021'],
+    target: { id: 'wo_033', name: 'Air Conditioning – Not cooling', meta: 'Tampines · 窗口 09:30–11:30 · 45 min · 复杂度 2', pri: 'P3' },
+    steps: [
+      { agent: 'Orchestrator', title: '新单进入：create_order → dispatch_order', stage: null,
+        lines: ['客户 App 确认卡提交 · 目录条目 <code>cat_ac_003</code> · 固定时长 45 min', '未付费加急 → base priority <code>P3</code>', 'AgentRun <code>run_7f2</code> 开始，目标 <code>wo_033</code>'],
+        scene: s => ({ ...s, target: { ...S1.target, live: true } }) },
+      { agent: 'SchedulingAgent', title: 'load_snapshot：冻结事实', stage: null,
+        lines: ['schedule <code>v7</code> · 8 技师 · 30 单 · now 08:30', '锁定前缀：<code>wo_001</code> EN_ROUTE · <code>wo_002</code> IN_PROGRESS —— 已出发的任务永不重排', '通勤矩阵 <code>rs_31</code>（OSRM 自由流 ×1.25 + 3 min）'],
+        scene: s => ({ ...s, pulseLocked: true }) },
+      { agent: 'SchedulingAgent', title: 'qualified_techs：技能不够的人根本不进搜索', stage: 'search',
+        lines: ['要求 Air Conditioning ≥ L2', '合格 3 / 8：Bala L3 · Gopal L2 · Aaron L4', '其余 5 人不是扣分，是不进入搜索空间'],
+        scene: s => ({ ...s, pulseLocked: false, hl: ['tech_02', 'tech_04', 'tech_07'] }),
+        panel: p => ({ ...p, stage: 'search' }) },
+      { agent: 'Solver', title: '阶段 1 · 直接插入：每位合格技师 × 每个位置', stage: 'search', scan: S1_TRIALS,
+        lines: ['<code>_insertions()</code>：把目标插到可移动路线的每一个位置，后继任务允许顺延', '每个候选都是<b>完整方案</b>，交给 validator 独立校验', '被拒的候选按违规码计数，不会静默丢弃'],
+        scene: s => ({ ...s, ghosts: S1_TRIALS.filter(t => t.v !== 'rej').map(t => ({ ...t, id: 'g_' + t.tech })) }),
+        panel: p => ({ ...p, funnel: { explored: 15, feasible: 3 }, rejections: { window_late: 10, after_shift: 1, authority: 1 } }) },
+      { agent: 'Validator', title: '可行集：3 个方案留在权限之内', stage: 'validate',
+        lines: ['Bala 10:33 · Gopal 11:05 · Aaron 10:35 —— 都是 <code>affected 0</code>', 'Aaron 09:30 硬约束全部通过，但要顺延 2 单 → <code>authority</code> 拒绝（P3 max_affected = 0）', '拒绝计数：<code>window_late ×10 · after_shift ×1 · authority ×1</code>'],
+        panel: p => ({ ...p, stage: 'validate' }) },
+      { agent: 'Solver', title: '阶段 2 / 3 跳过：P3 无移动权限', stage: 'search',
+        lines: ['<code>rule.allows_moves = False</code> → 紧急前插与局部搜索不执行', '预算 5000 ms，实际 38 ms · <code>search_incomplete = False</code>', '不声称全局最优：只保证在权限内穷尽了直接插入'],
+        scene: s => ({ ...s, skipNote: true }),
+        panel: p => ({ ...p, stage: 'search', skipped: true }) },
+      { agent: 'Scorer', title: '五项匹配分：分数是偏好，不是成功概率', stage: 'score',
+        lines: ['skill 0.30 · travel 0.25 · response 0.20 · workload 0.10 · stability 0.15 → 0–100', 'Aaron L4 技能富余 + 5 min 通勤 → <b>78.6</b>；Gopal 11:05 响应慢 → 65.0 未过线', '优先级不加分；分数只比较方案，不决定权限'],
+        scene: s => ({ ...s, skipNote: false }),
+        panel: p => ({ ...p, stage: 'score', scores: S1_SCORES, dscore: 'decision_score = min(new / changed) = 78.6（只有目标一单变化）' }) },
+      { agent: 'Solver', title: 'select_strategies：三个视角，两张卡', stage: 'score',
+        lines: ['faster_response → 最早开始：Bala 10:33', 'less_disruption 与 balanced 都指向 Aaron 10:35 → <b>标签合并</b>，不伪造第三张卡', '执行候选 = 分数最高者（客户历史差评只作排序惩罚，不改分数与阈值）'],
+        panel: p => ({ ...p, funnel: { ...p.funnel, strategies: 2 }, strategies: [
+          { tags: ['faster_response'], who: 'Bala Krishnan', start: '10:33', affected: 0, score: 75.2 },
+          { tags: ['less_disruption', 'balanced'], who: 'Aaron Teo', start: '10:35', affected: 0, score: 78.6, chosen: true, note: '两个策略选出同一方案 → 合并' },
+        ] }) },
+      { agent: 'PolicyEngine', title: 'decide：P3 · affected 0 · 78.6 > 70 → AUTO', stage: 'policy',
+        lines: ['硬约束 ✓ · 权限 ✓（affected 0 / 0）', '阈值 <code>70</code>，严格大于：<code>78.6 > 70</code>', 'reasons: <code>["P3: no other order may change", "decision_score 78.6 > 70"]</code>'],
+        panel: p => ({ ...p, stage: 'policy', funnel: { ...p.funnel, decision: 'AUTO' }, auth: { active: 'P3', affected: 0 }, gate: { kind: 'auto', title: 'AUTO · 自动提交', reasons: ['P3: no other order may change', 'decision_score 78.6 > 70'] } }) },
+      { agent: 'Orchestrator', title: 'commit_plan：唯一的写入出口', stage: 'commit', hold: 3500,
+        lines: ['ScheduleVersion <code>v7 → v8</code> · parent v7', '<code>wo_033 → tech_07</code> · 出发 10:30 · 开始 10:35 · 结束 11:20 · 其他块位置不变', '通知（simulated）：客户 "Aaron Teo plans to start at 10:35" · 技师 "New job wo_033"'],
+        scene: s => ({ ...s, ghosts: [], hl: ['tech_07'], commit: [{ id: 'wo_033', tech: 'tech_07', s: M('10:35'), e: M('11:20'), pri: 'P3', state: 'committed' }], target: { ...S1.target, live: false, done: 'ASSIGNED · Aaron Teo · 10:35' } }),
+        panel: p => ({ ...p, stage: 'commit', version: 8 }) },
+    ],
+  };
+
+  // ------------------------------------------------------------------ scenario 2 · P0 technician unavailable → cascade → MANUAL
+  const S2_STAGE1 = [
+    T('tech_03', '10:36', '11:06', 'rej', 'window_late', 'wo_012 → 11:18 > 11:15'),
+    T('tech_03', '12:06', '12:36', 'rej', 'window_late', '12:06 > 10:40'),
+    T('tech_03', '14:46', '15:16', 'rej', 'window_late'),
+    T('tech_03', '17:16', '17:46', 'rej', 'window_late'),
+  ];
+  const S2_REHOME = [
+    T('tech_05', '11:12', '12:12', 'ok', null, 'wo_012 · travel 12'),
+    T('tech_05', '13:42', '14:42', 'rej', 'window_late', 'wo_012'),
+    T('tech_01', '11:18', '12:18', 'rej', 'window_late', 'wo_012'),
+    T('tech_01', '14:12', '15:12', 'rej', 'window_late', 'wo_012'),
+    T('tech_03', '11:18', '12:18', 'rej', 'window_late', 'wo_012 after target'),
+  ];
+  const S2_SCORES = [
+    { who: 'wo_021 → Devi', when: 'target · 10:36', comps: [24.0, 18.3, 19.0, 5.5, 7.5], total: 74.3 },
+    { who: 'wo_012 → Hana', when: 'displaced · 11:12', comps: [21.0, 21.7, 15.5, 6.2, 7.5], total: 71.9, min: true },
+  ];
+  const S2 = {
+    id: 'p0-manual', name: 'P0 技师请假 · 级联修复 · 人工审批', now: M('10:16'), version: 8,
+    summary: '技师 10:16 请假，释放三张未出发的单。按剩余分钟分级后，P0 的换锁单直接插入全部失败，求解器进入第二阶段把别人顶走再安家；分数过线，但 P0 只要动了别人就必须审批。',
+    locked: ['wo_003', 'wo_004', 'wo_006', 'wo_007', 'wo_009', 'wo_010'], done: ['wo_001', 'wo_002', 'wo_005', 'wo_029', 'wo_030'], hide: [],
+    target: { id: 'wo_021', name: 'Locks – Damaged, needs replacement', meta: 'Punggol · 窗口 10:30–10:40 · 30 min · 原技师 Farah', pri: 'P3' },
+    steps: [
+      { agent: 'Technician App', title: '事件：Farah 10:16 报告不可用', stage: null,
+        lines: ['<code>event_service.technician_unavailable</code> 先记事实：不可用区间 10:16 → 18:00', '释放 3 张未出发单：<code>wo_021 · wo_015 · wo_019</code>', '执行中的单：无 → 不产生 EXECUTION_INTERRUPTED'],
+        scene: s => ({ ...s, unavailable: { tech_06: M('10:16') }, state: { wo_021: 'released', wo_015: 'released', wo_019: 'released' } }) },
+      { agent: 'RiskMonitoringAgent', title: 'classify_priority：按剩余分钟分级', stage: null,
+        lines: ['<code>wo_021</code>：截止 10:40 − 10:16 = <b>24 min &lt; 30 → P0</b>', '<code>wo_015</code> 剩 284 min · <code>wo_019</code> 剩 374 min → 都 &gt; 120 → P2', '风险事件 TECHNICIAN_CANCELLED ×3，稳定 key，不重复告警'],
+        scene: s => ({ ...s, badges: { wo_021: 'P0 · 24 min', wo_015: 'P2 · 284 min', wo_019: 'P2 · 374 min' }, pri: { wo_021: 'P0', wo_015: 'P2', wo_019: 'P2' } }) },
+      { agent: 'Orchestrator', title: '恢复派单：最紧急的先处理', stage: null,
+        lines: ['顺序 <code>wo_021 (P0) → wo_015 (P2) → wo_019 (P2)</code>', 'P0 权限：可动 P2/P3 · max_affected 5 · 动了就审批', '同一事件里第二个影响他人的方案会被强制审批，防止拆分自动提交叠加'],
+        scene: s => ({ ...s, target: { ...S2.target, pri: 'P0', live: true } }),
+        panel: p => ({ ...p, auth: { active: 'P0', affected: null } }) },
+      { agent: 'SchedulingAgent', title: 'qualified_techs：Locks ≥ L2', stage: 'search',
+        lines: ['Devi L3 ✓ · Farah L2 不可用 ✗ · Hana L1 不够 ✗', '合格 <b>1 / 8</b>', 'Devi 当前 <code>wo_009</code> 进行中，10:20 在 Sengkang 释放'],
+        scene: s => ({ ...s, hl: ['tech_03'] }),
+        panel: p => ({ ...p, stage: 'search' }) },
+      { agent: 'Solver', title: '阶段 1 · 直接插入：4 个位置，0 可行', stage: 'search', scan: S2_STAGE1,
+        lines: ['位置 0：10:36 进窗口，但把 <code>wo_012</code> 顶到 11:18，超过它的 11:15 → 拒', '位置 1–3：全部晚于 10:40', '直接插入穷尽 → 进入阶段 2（P0 有移动权限）'],
+        panel: p => ({ ...p, funnel: { explored: 4, feasible: 0 }, rejections: { window_late: 4 } }) },
+      { agent: 'Solver', title: '阶段 2 · 紧急前插：目标做 Devi 的下一单', stage: 'search',
+        lines: ['<code>_front_insertions_with_cascade</code>：按到达时间排技师，目标插到路线最前', 'Devi 10:20 Sengkang → Punggol 16 min → <b>10:36</b> ∈ [10:30, 10:40] ✓', '后继 <code>wo_012</code> 不再放得下 → 被顶出（displaced），必须为它另找家'],
+        scene: s => ({ ...s, ghosts: [{ id: 'g_target', tech: 'tech_03', s: M('10:36'), e: M('11:06'), v: 'ok', note: 'target' }], state: { ...s.state, wo_012: 'released' }, badges: { ...s.badges, wo_012: 'displaced' } }),
+        panel: p => ({ ...p, funnel: { explored: 5, feasible: 0 } }) },
+      { agent: 'Solver', title: '级联安家：wo_012 在所有合格技师上按最早开始重插', stage: 'search', scan: S2_REHOME,
+        lines: ['Electrical ≥ L2：Hana L3 · Chen Wei L2 · Devi 自己（只能排在目标之后）', '每个位置同样走完整校验；被顶出的单也必须留在自己的时间窗内', '任何一个被顶出的单安不了家 → 整个级联作废，不会牺牲任何人'],
+        scene: s => ({ ...s, ghosts: [{ id: 'g_target', tech: 'tech_03', s: M('10:36'), e: M('11:06'), v: 'ok', note: 'target' }, { id: 'g_012', tech: 'tech_05', s: M('11:12'), e: M('12:12'), v: 'ok', note: 'wo_012 · 11:12' }] }),
+        panel: p => ({ ...p, funnel: { explored: 10, feasible: 1 }, rejections: { window_late: 8 } }) },
+      { agent: 'Solver', title: '阶段 3 · 有界局部搜索：再试 6 个 relocate，没有更好的', stage: 'search',
+        lines: ['<code>max_relocate_candidates = 40</code>，本次只有 6 个可移动组合', '0 个新候选 · 累计探索 16 · 41 ms', '候选池：1 个完整方案（wo_021 → Devi 10:36，wo_012 → Hana 11:12）'],
+        scene: s => ({ ...s, ghosts: [], pos: { ...s.pos, wo_012: { tech: 'tech_05', s: M('11:12'), e: M('12:12') } }, state: { ...s.state, wo_012: 'pending', wo_021: 'pending' }, pos2: { wo_021: { tech: 'tech_03', s: M('10:36'), e: M('11:06') } }, badges: { wo_015: 'P2 · 284 min', wo_019: 'P2 · 374 min' }, arc: ['wo_012', 'tech_03', M('10:50'), 'tech_05', M('11:12')] }),
+        panel: p => ({ ...p, funnel: { explored: 16, feasible: 1 } }) },
+      { agent: 'Validator', title: '校验：两个块都在各自的窗口里', stage: 'validate',
+        lines: ['<code>wo_021</code> 10:36 ∈ [10:30, 10:40] ✓', '<code>wo_012</code> 11:12 ∈ [10:45, 11:15] ✓ · 在 Hana 的 <code>wo_007</code> 之后、<code>wo_027</code> 之前', 'affected = {wo_012}（换了技师）· 仅通勤变化不计入'],
+        scene: s => ({ ...s, winlines: [['tech_03', M('10:30'), M('10:40')], ['tech_05', M('10:45'), M('11:15')]] }),
+        panel: p => ({ ...p, stage: 'validate', auth: { active: 'P0', affected: 1 } }) },
+      { agent: 'Scorer', title: '打分：用被影响得最惨的那一单来定分', stage: 'score',
+        lines: ['<code>wo_021@Devi</code> 74.3 · <code>wo_012@Hana</code> 71.9（stability 因换人扣到 7.5）', '<b>decision_score = min = 71.9</b>，不是目标自己的 74.3', '木桶原则：方案的分数由最短那块板决定'],
+        scene: s => ({ ...s, winlines: null }),
+        panel: p => ({ ...p, stage: 'score', scores: S2_SCORES, dscore: 'decision_score = min(74.3, 71.9) = 71.9 ← wo_012 是最短板', dmin: true, funnel: { ...p.funnel, strategies: 1 }, strategies: [{ tags: ['faster_response', 'less_disruption', 'balanced'], who: 'Devi 10:36 + Hana 11:12', start: '10:36', affected: 1, score: 71.9, chosen: true, note: '池里只有一个方案 → 三个标签合并，不编造' }] }) },
+      { agent: 'PolicyEngine', title: 'decide：分数过线，但 P0 动了 1 单 → MANUAL', stage: 'policy',
+        lines: ['权限 ✓：affected 1 ≤ 5，被动的是未出发 P3', '<code>71.9 > 70</code> ✓ —— 可这不是决定因素', 'reasons: <code>["P0 affecting 1 undeparted P2/P3 orders: dispatcher approval required"]</code>'],
+        panel: p => ({ ...p, stage: 'policy', funnel: { ...p.funnel, decision: 'MANUAL' }, gate: { kind: 'manual', title: 'MANUAL · 等待调度员', reasons: ['P0 affecting 1 undeparted P2/P3 orders: dispatcher approval required', 'decision_score 71.9 > 70'] } }) },
+      { agent: 'Orchestrator', title: '进审批，不写排班；P2 两单零扰动自动补派', stage: 'policy',
+        lines: ['CandidatePlan <code>cp_91</code> PENDING_REVIEW · 30 sim-min 后过期 · HumanCase <code>hc_12</code>', '<code>wo_015 → Hana 13:40</code> · <code>wo_019 → Aaron 15:05</code>：affected 0 · 81 / 79 &gt; 70 → AUTO → v9', '这两张单不等审批：零扰动的事自动做，动别人的事找人'],
+        scene: s => ({ ...s, pos: { ...s.pos, wo_015: { tech: 'tech_05', s: M('13:40'), e: M('14:25') }, wo_019: { tech: 'tech_07', s: M('15:05'), e: M('15:50') } }, state: { ...s.state, wo_015: 'moved', wo_019: 'moved' }, badges: { wo_015: 'auto', wo_019: 'auto' }, arc: null }),
+        panel: p => ({ ...p, version: 9 }) },
+      { agent: 'Dispatcher', title: 'Review queue：Approve & commit → v10', stage: 'commit', hold: 3500,
+        lines: ['调度员看到差分表：<code>wo_012</code> 换人计数，其余行只有通勤变化', '<code>plan_service.approve</code> 事务内重校验：目标未取消、未出发、版本仍是 v9', 'ScheduleVersion <code>v9 → v10</code> · wo_021 → Devi 10:36 · wo_012 → Hana 11:12 · hc_12 resolved'],
+        scene: s => ({ ...s, state: { ...s.state, wo_012: 'moved', wo_021: 'committed' }, badges: {}, target: { ...S2.target, pri: 'P0', live: false, done: 'ASSIGNED · Devi Nair · 10:36' } }),
+        panel: p => ({ ...p, stage: 'commit', version: 10 }) },
+    ],
+  };
+  const SCENARIOS = [S1, S2];
+
+  // ------------------------------------------------------------------ geometry
+  const VW = 1000, LEFT = 122, RPAD = 12, T0 = M('07:30'), T1 = M('18:30'), TOP = 74, ROW = 45, BH = 24;
+  const X = m => LEFT + (m - T0) / (T1 - T0) * (VW - LEFT - RPAD);
+  const rowY = i => TOP + i * ROW;
+  const techIdx = Object.fromEntries(TECHS.map((t, i) => [t.id, i]));
+
+  // ------------------------------------------------------------------ state
+  let sc = SCENARIOS[0], idx = 0, playing = true, speed = 1, loop = true, timer = null, scanTimers = [], runSeq = 0;
+
+  function baseScene(s) {
+    return { now: s.now, locked: new Set(s.locked || []), done: new Set(s.done || []), hide: new Set(s.hide || []), hl: null, ghosts: [], pos: {}, pos2: {}, state: {}, pri: {}, badges: {}, unavailable: {}, target: { ...s.target, live: false }, commit: [], arc: null, winlines: null, pulseLocked: false, skipNote: false };
+  }
+  function basePanel(s) {
+    return { stage: null, skipped: false, funnel: {}, rejections: null, scores: null, dscore: null, dmin: false, strategies: null, auth: { active: null, affected: null }, gate: null, version: s.version };
+  }
+  function stateAt(i) {
+    let scene = baseScene(sc), panel = basePanel(sc);
+    for (let k = 0; k <= i; k++) { const st = sc.steps[k]; if (st.scene) scene = st.scene(scene); if (st.panel) panel = st.panel(panel); }
+    return { scene, panel };
+  }
+  function stepDuration(st) {
+    const chars = st.title.length + st.lines.reduce((n, l) => n + l.replace(/<[^>]+>/g, '').length, 0);
+    let base = Math.min(9000, Math.max(4200, 2200 + chars * 34)) + (st.hold || 0);
+    if (st.scan) base += scanLength(st.scan);
+    return base / speed;
+  }
+  const scanDelay = k => (reduced ? 45 : k < 4 ? 720 : 170) / speed;
+  function scanLength(trials) { let t = 0; for (let k = 0; k < trials.length; k++) t += scanDelay(k) * speed; return t + 900; }
+
+  // ------------------------------------------------------------------ svg static
+  const svg = $('gantt');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const txt = (parent, x, y, s, cls, attrs) => { const t = el('text', { x, y, class: cls, ...(attrs || {}) }, parent); t.textContent = s; return t; };
+  let L = {};
+  function buildStatic() {
+    svg.innerHTML = '';
+    const defs = el('defs', {}, svg);
+    const mk = el('marker', { id: 'arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+    el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--accent)' }, mk);
+    const pat = el('pattern', { id: 'hatch', width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+    el('line', { x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'var(--crit)', 'stroke-width': 1.2, opacity: .5 }, pat);
+    L.bg = el('g', {}, svg); L.rows = el('g', {}, svg); L.unav = el('g', {}, svg); L.blocks = el('g', {}, svg); L.ghosts = el('g', {}, svg); L.arcs = el('g', {}, svg); L.win = el('g', {}, svg); L.trial = el('g', { class: 'trial' }, svg); L.now = el('g', {}, svg); L.tcard = el('g', { class: 'tcard' }, svg); L.caps = el('g', {}, svg);
+    // axis + grid
+    for (let m = M('08:00'); m <= M('18:00'); m += 60) {
+      el('line', { x1: X(m), x2: X(m), y1: TOP - 6, y2: TOP + TECHS.length * ROW, class: 'grid' }, L.bg);
+      txt(L.bg, X(m), TOP - 10, F(m), 'axis', { 'text-anchor': 'middle' });
+    }
+    L.rowEls = {};
+    TECHS.forEach((t, i) => {
+      const g = el('g', { class: 'rowg' }, L.rows); L.rowEls[t.id] = g;
+      el('rect', { x: 0, y: rowY(i), width: VW, height: ROW, fill: i % 2 ? 'var(--surface-2)' : 'transparent' }, g);
+      el('rect', { x: X(M('08:00')), y: rowY(i) + 10, width: X(M('18:00')) - X(M('08:00')), height: BH, class: 'shiftband', rx: 3 }, g);
+      txt(g, 8, rowY(i) + 19, t.name, 'row-lab');
+      txt(g, 8, rowY(i) + 32, t.skills, 'row-sk');
+    });
+    L.blockEls = {}; L.ghostEls = {};
+  }
+
+  function blockEl(layer, map, id) {
+    let g = map[id];
+    if (!g) {
+      g = el('g', { class: 'blk', 'data-id': id }, layer); map[id] = g;
+      el('rect', { x: 0, y: 0, height: BH, width: 10 }, g);
+      txt(g, 4, 14.5, id, '');
+      const lk = el('g', { class: 'lock', opacity: 0 }, g);
+      el('rect', { x: -1, y: 5, width: 7, height: 5.5, rx: 1 }, lk); el('path', { d: 'M0.5,5 v-1.5 a2 2 0 0 1 4 0 v1.5', fill: 'none', stroke: 'var(--blk-ink)', 'stroke-width': 1.1 }, lk);
+      const bd = el('g', { class: 'badge', opacity: 0 }, g); el('rect', { x: 0, y: -13, height: 12, width: 10 }, bd); txt(bd, 5, -4, '', '');
+    }
+    return g;
+  }
+  function placeBlock(g, tech, s, e, label) {
+    const w = Math.max(6, X(e) - X(s));
+    g.style.transform = `translate(${X(s)}px, ${rowY(techIdx[tech]) + 10}px)`;
+    const r = g.firstChild; r.setAttribute('width', w);
+    const t = g.children[1]; t.textContent = label; t.setAttribute('x', label.length * 5.2 + 4 > w ? 2 : 4);
+    t.setAttribute('font-size', label.length * 5.2 + 4 > w ? '7' : '8.5');
+  }
+
+  // ------------------------------------------------------------------ render
+  function render(scene, panel, opts) {
+    opts = opts || {};
+    // rows
+    TECHS.forEach(t => { const g = L.rowEls[t.id]; g.classList.toggle('dim', !!scene.hl && !scene.hl.includes(t.id)); g.classList.toggle('hl', !!scene.hl && scene.hl.includes(t.id)); });
+    // unavailability
+    L.unav.innerHTML = '';
+    for (const tid in scene.unavailable) { const from = scene.unavailable[tid]; const y = rowY(techIdx[tid]) + 10;
+      el('rect', { x: X(from), y, width: X(M('18:00')) - X(from), height: BH, class: 'unav', rx: 3 }, L.unav);
+      el('rect', { x: X(from), y, width: X(M('18:00')) - X(from), height: BH, fill: 'url(#hatch)', rx: 3 }, L.unav);
+      txt(L.unav, X(from) + 6, y + 15, '不可用 ' + F(from) + ' →', 'nowlab'); }
+    // blocks
+    const seen = new Set();
+    const all = BASE.filter(b => !scene.hide.has(b.id)).concat(scene.commit || []);
+    for (const b of all) {
+      seen.add(b.id);
+      const g = blockEl(L.blocks, L.blockEls, b.id);
+      const p = scene.pos[b.id] || b, p2 = scene.pos2[b.id];
+      placeBlock(g, p2 ? p2.tech : p.tech, p2 ? p2.s : p.s, p2 ? p2.e : p.e, b.id);
+      const pri = (scene.pri[b.id] || b.pri).toLowerCase();
+      const st = scene.state[b.id] || b.state || '';
+      g.setAttribute('class', 'blk ' + pri + (scene.locked.has(b.id) ? ' locked' : '') + (scene.done.has(b.id) ? ' done' : '') + (st ? ' ' + st : ''));
+      g.children[2].setAttribute('opacity', scene.locked.has(b.id) ? 1 : 0);
+      g.children[2].style.transform = `translate(${Math.max(6, X(p.e) - X(p.s)) - 9}px, 3px)`;
+      const bd = g.children[3], badge = scene.badges[b.id];
+      if (badge) { bd.setAttribute('opacity', 1); const cls = badge.startsWith('P0') ? 'P0' : badge.startsWith('P2') ? 'P2' : ''; bd.setAttribute('class', 'badge ' + cls); const w = badge.length * 5 + 8; bd.firstChild.setAttribute('width', w); if (cls) bd.firstChild.removeAttribute('fill'); else bd.firstChild.setAttribute('fill', 'var(--accent)'); bd.lastChild.textContent = badge; bd.lastChild.setAttribute('x', w / 2); bd.lastChild.setAttribute('text-anchor', 'middle'); }
+      else bd.setAttribute('opacity', 0);
+    }
+    for (const id in L.blockEls) if (!seen.has(id)) { L.blockEls[id].remove(); delete L.blockEls[id]; }
+    // ghosts (persistent feasible outlines)
+    const gseen = new Set();
+    for (const gh of scene.ghosts) {
+      gseen.add(gh.id);
+      const g = blockEl(L.ghosts, L.ghostEls, gh.id);
+      placeBlock(g, gh.tech, gh.s, gh.e, gh.note === 'target' ? F(gh.s) : (gh.note && gh.note.startsWith('wo_') ? gh.note : F(gh.s)));
+      g.setAttribute('class', 'blk ' + (gh.v === 'auth' ? 'ghost-auth' : 'ghost-ok'));
+      if (gh.v === 'auth') g.children[1].textContent = F(gh.s) + ' ✗auth';
+      g.children[2].setAttribute('opacity', 0); g.children[3].setAttribute('opacity', 0);
+    }
+    for (const id in L.ghostEls) if (!gseen.has(id)) { L.ghostEls[id].remove(); delete L.ghostEls[id]; }
+    // arc (cascade move)
+    L.arcs.innerHTML = '';
+    if (scene.arc) { const [, tA, sA, tB, sB] = scene.arc; const x1 = X(sA) + 8, y1 = rowY(techIdx[tA]) + 10, x2 = X(sB) + 8, y2 = rowY(techIdx[tB]) + 10;
+      const path = el('path', { class: 'arc', d: `M ${x1} ${y1} C ${x1} ${(y1 + y2) / 2 - 30}, ${x2} ${(y1 + y2) / 2 - 30}, ${x2} ${y2}` }, L.arcs);
+      requestAnimationFrame(() => path.classList.add('show')); }
+    // window lines
+    L.win.innerHTML = '';
+    if (scene.winlines) for (const [tid, a, b] of scene.winlines) { const y = rowY(techIdx[tid]) + 7;
+      el('line', { x1: X(a), x2: X(b), y1: y, y2: y, class: 'winline' }, L.win); el('line', { x1: X(a), x2: X(a), y1: y - 3, y2: y + 3, class: 'winline' }, L.win); el('line', { x1: X(b), x2: X(b), y1: y - 3, y2: y + 3, class: 'winline' }, L.win);
+      txt(L.win, X(b) + 4, y + 3, `窗口 ${F(a)}–${F(b)} ✓`, 'winlab'); }
+    // now line
+    L.now.innerHTML = '';
+    el('line', { x1: X(scene.now), x2: X(scene.now), y1: TOP - 4, y2: TOP + TECHS.length * ROW, class: 'nowline' }, L.now);
+    txt(L.now, X(scene.now) + 4, TOP + TECHS.length * ROW + 12, 'now ' + F(scene.now), 'nowlab');
+    // target card
+    L.tcard.innerHTML = '';
+    const tg = scene.target; L.tcard.setAttribute('class', 'tcard' + (tg.live ? ' live' : ''));
+    if (tg.live || tg.done) {
+      el('rect', { class: 'bg', x: 8, y: 8, width: 330, height: 44 }, L.tcard);
+      const pc = tg.pri === 'P0' ? 'var(--p0)' : tg.pri === 'P1' ? 'var(--p1)' : tg.pri === 'P2' ? 'var(--p2)' : 'var(--p3)';
+      el('rect', { class: 'pri-bg', x: 16, y: 15, width: 24, height: 13, fill: pc }, L.tcard); txt(L.tcard, 28, 25, tg.pri, 'pri', { 'text-anchor': 'middle' });
+      txt(L.tcard, 46, 25, tg.id + '  ' + tg.name, 'id');
+      txt(L.tcard, 16, 42, tg.done ? tg.done : tg.meta, 'd');
+      if (tg.done) L.tcard.querySelector('.d').setAttribute('fill', 'var(--good)');
+    }
+    // captions
+    L.caps.innerHTML = '';
+    if (scene.skipNote) { txt(L.caps, 360, 25, '阶段 2 紧急前插 · 阶段 3 局部搜索 —— 跳过（P3 无移动权限）', 'stagecap'); txt(L.caps, 360, 40, 'rule.allows_moves = False', 'cap'); }
+    if (scene.pulseLocked) txt(L.caps, 360, 32, '带锁标记 = 已出发 / 进行中：锁定前缀不参与重排', 'cap');
+    if (!opts.keepTrial) L.trial.innerHTML = '';
+    renderPanel(panel);
+  }
+
+  function renderPanel(p) {
+    $('pills').innerHTML = STAGES.map(([k, lab], i) => { const on = p.stage === k; const done = STAGES.findIndex(s => s[0] === p.stage) > i; return `<span class="pill${on ? ' on' : done ? ' done' : ''}"><i>${done ? '✓' : i + 1}</i>${lab}</span>`; }).join('');
+    $('ver').innerHTML = `schedule <b>v${p.version}</b> · policy 2026-09-16-v3`;
+    // funnel
+    const f = p.funnel || {};
+    const v = (x, cls) => x == null ? '<div class="v dash">—</div>' : `<div class="v ${cls || ''}" data-v="${x}">${x}</div>`;
+    $('funnel').innerHTML = `<div class="tile"><div class="l">试算 explored</div>${v(f.explored)}</div><div class="tile"><div class="l">可行 · 权限内</div>${v(f.feasible)}</div><div class="tile"><div class="l">策略卡</div>${v(f.strategies)}</div><div class="tile"><div class="l">决定</div>${v(f.decision, f.decision ? f.decision.toLowerCase() : '')}</div>`;
+    const r = p.rejections;
+    $('rej').innerHTML = r ? Object.entries(r).map(([k, n]) => `<span class="chip${k === 'authority' ? ' auth' : ''}">${k} <b>×${n}</b></span>`).join('') + (f.feasible != null ? `<span class="chip ok">feasible <b>×${f.feasible}</b></span>` : '') : '<span class="empty">拒绝原因按 validator 违规码计数</span>';
+    // scores
+    if (p.scores) {
+      $('scores').innerHTML = `<div class="cands">${p.scores.map(c => `<div class="cand${c.chosen ? ' chosen' : ''}${c.low ? ' low' : ''}${c.min ? ' min' : ''}"><div class="who">${c.who}<small>${c.when}</small></div><div class="bar">${c.comps.map((x, i) => `<span class="s-${i + 1}" style="width:${x}%" title="${COMP[i]} ${x}"></span>`).join('')}</div><div class="tot num">${c.total.toFixed(1)}</div></div>`).join('')}</div>
+        <div class="legend">${COMP.map((k, i) => `<span><i class="s-${i + 1}"></i>${k} ${W[i]}</span>`).join('')}<span class="thr">┆ 阈值 70</span></div>
+        <div class="dscore${p.dmin ? ' min' : ''}">${p.dscore}</div>`;
+      requestAnimationFrame(() => $('scores').querySelectorAll('.bar span').forEach(s => { const w = s.style.width; s.style.width = '0%'; requestAnimationFrame(() => { s.style.width = w; }); }));
+    } else $('scores').innerHTML = '<div class="empty">每个可行方案的每个新 / 变更分配都会被打分；权重来自 config/policy.yaml。</div>';
+    // strategies
+    $('strats').innerHTML = p.strategies ? `<div class="strats">${p.strategies.map(s => `<div class="st${s.chosen ? ' chosen' : ''}"><div class="tags">${s.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div><div class="who">${s.who}</div><div class="m"><span>start <b>${s.start}</b></span><span>affected <b>${s.affected}</b></span><span>score <b>${s.score.toFixed(1)}</b></span></div>${s.note ? `<div class="note">${s.note}</div>` : ''}</div>`).join('')}</div>` : '<div class="empty">从可行池里挑最多三个真正不同的完整方案：faster_response · less_disruption · balanced。</div>';
+    // authority
+    const a = p.auth || {};
+    $('auth').innerHTML = `<table><thead><tr><th>目标</th><th>可移动</th><th>max_affected</th><th>备注</th></tr></thead><tbody>${AUTH_ROWS.map(r => `<tr class="${a.active === r.p ? 'on' : ''}"><td class="p ${r.p}">${r.p}</td><td>${r.movable}</td><td>${r.max}${a.active === r.p && a.affected != null ? ` <span style="color:var(--ink-3)">· 本次 ${a.affected}</span>` : ''}</td><td style="color:var(--ink-2)">${r.note}</td></tr>`).join('')}</tbody></table>
+      <div class="gate ${p.gate ? p.gate.kind : ''}">${p.gate ? `<div class="g"><i></i>${p.gate.title}</div><ul>${p.gate.reasons.map(x => `<li>${x}</li>`).join('')}</ul>` : '<div class="g idle"><i></i>等待候选方案 · auto / manual / forbidden</div>'}</div>`;
+  }
+
+  function renderNarr(st, running) {
+    const n = $('narr');
+    n.innerHTML = `<div class="k"><span class="agent">${st.agent}</span><span class="idx">步骤 ${idx + 1} / ${sc.steps.length}</span></div><h2>${st.title}</h2><ul>${st.lines.map(l => `<li><span>${l}</span></li>`).join('')}</ul><div class="prog"><i></i></div>`;
+    if (running) { const i = n.querySelector('.prog i'); i.style.animationDuration = stepDuration(st) + 'ms'; i.classList.add('run'); }
+  }
+  function renderSteps() {
+    $('steps').innerHTML = sc.steps.map((s, i) => `<button class="step ${i < idx ? 'done' : i === idx ? 'now' : ''}" data-i="${i}"><span class="n">${i < idx ? '✓' : i + 1}</span><span class="t">${s.title}</span></button>`).join('');
+    const cur = $('steps').querySelector('.now'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  }
+  function renderTabs() { $('tabs').innerHTML = SCENARIOS.map(s => `<button role="tab" aria-selected="${s.id === sc.id}" data-s="${s.id}">${s.name}</button>`).join(''); }
+
+  // ------------------------------------------------------------------ scan animation (trial by trial)
+  function runScan(step, seq) {
+    const { scene, panel } = stateAt(idx - 1 >= 0 ? idx - 1 : 0);
+    const live = idx === 0 ? { scene: baseScene(sc), panel: basePanel(sc) } : { scene, panel };
+    // keep scene deltas that the scan step itself introduces except ghosts (they appear one by one)
+    const target = stateAt(idx);
+    const startScene = { ...target.scene, ghosts: live.scene.ghosts.slice() };
+    const startPanel = { ...target.panel, funnel: { ...(live.panel.funnel || {}) }, rejections: live.panel.rejections ? { ...live.panel.rejections } : null };
+    const baseExplored = startPanel.funnel.explored || 0, baseFeasible = startPanel.funnel.feasible || 0;
+    let explored = baseExplored, feasible = baseFeasible; const rej = { ...(startPanel.rejections || {}) };
+    render(startScene, startPanel);
+    const trials = step.scan; let k = 0;
+    const tick = () => {
+      if (seq !== runSeq) return;
+      if (k >= trials.length) { scanTimers.push(setTimeout(() => { if (seq === runSeq) render(target.scene, target.panel); }, 500)); return; }
+      const t = trials[k]; explored++;
+      if (t.v === 'ok') feasible++; else rej[t.code] = (rej[t.code] || 0) + 1;
+      L.trial.innerHTML = ''; L.trial.setAttribute('class', 'trial ' + t.v);
+      const y = rowY(techIdx[t.tech]) + 10, w = Math.max(6, X(t.e) - X(t.s));
+      el('rect', { x: X(t.s), y, width: w, height: BH }, L.trial);
+      txt(L.trial, X(t.s) + 3, y - 4, t.v === 'ok' ? `✓ ${F(t.s)}${t.note ? ' · ' + t.note : ''}` : t.v === 'auth' ? `✗ ${t.code} · ${t.note || ''}` : `✗ ${t.code}${t.note ? ' · ' + t.note : ''}`, 'code');
+      txt(L.trial, X(t.s) + 3, y + 15, `#${explored} ${F(t.s)}–${F(t.e)}`, '');
+      if (t.v !== 'rej') startScene.ghosts.push({ ...t, id: 'g_' + t.tech + '_' + k });
+      startPanel.funnel = { ...startPanel.funnel, explored, feasible }; startPanel.rejections = { ...rej };
+      render(startScene, startPanel, { keepTrial: true });
+      $('funnel').querySelectorAll('.v').forEach(e => e.classList.add('bump'));
+      k++;
+      scanTimers.push(setTimeout(tick, scanDelay(k)));
+    };
+    tick();
+  }
+
+  // ------------------------------------------------------------------ step machine
+  function clearTimers() { if (timer) clearTimeout(timer); timer = null; scanTimers.forEach(clearTimeout); scanTimers = []; }
+  function show(i, fromNav) {
+    clearTimers(); runSeq++;
+    idx = Math.max(0, Math.min(sc.steps.length - 1, i));
+    const st = sc.steps[idx];
+    if (st.scan && !fromNav) runScan(st, runSeq); else { const { scene, panel } = stateAt(idx); render(scene, panel); }
+    renderNarr(st, playing); renderSteps();
+    $('btnPrev').disabled = idx === 0; $('btnNext').disabled = idx === sc.steps.length - 1;
+    if (playing) schedule();
+  }
+  function schedule() {
+    clearTimeout(timer);
+    const st = sc.steps[idx];
+    timer = setTimeout(() => {
+      if (idx < sc.steps.length - 1) show(idx + 1);
+      else if (loop) show(0);
+      else { playing = false; $('btnPlay').textContent = '▶ 播放'; renderNarr(st, false); }
+    }, stepDuration(st));
+  }
+  function setPlaying(p) { playing = p; $('btnPlay').textContent = p ? '⏸ 暂停' : '▶ 播放'; if (p) { renderNarr(sc.steps[idx], true); schedule(); } else { clearTimeout(timer); timer = null; renderNarr(sc.steps[idx], false); } }
+  function selectScenario(id) { sc = SCENARIOS.find(s => s.id === id) || SCENARIOS[0]; renderTabs(); buildStatic(); playing = true; $('btnPlay').textContent = '⏸ 暂停'; show(0); }
+
+  // ------------------------------------------------------------------ wiring
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) selectScenario(b.dataset.s); });
+  $('steps').addEventListener('click', e => { const b = e.target.closest('.step'); if (b) show(Number(b.dataset.i)); });
+  $('btnPrev').addEventListener('click', () => show(idx - 1, true));
+  $('btnNext').addEventListener('click', () => show(idx + 1));
+  $('btnPlay').addEventListener('click', () => setPlaying(!playing));
+  $('btnRestart').addEventListener('click', () => { playing = true; $('btnPlay').textContent = '⏸ 暂停'; show(0); });
+  $('speed').addEventListener('change', e => { speed = Number(e.target.value); if (playing) { renderNarr(sc.steps[idx], true); schedule(); } });
+  $('loop').addEventListener('change', e => { loop = e.target.checked; });
+  $('btnHide').addEventListener('click', () => $('app').classList.toggle('hidden-ctl'));
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+    else if (e.key === 'ArrowRight') show(idx + 1);
+    else if (e.key === 'ArrowLeft') show(idx - 1, true);
+    else if (e.key === 'r' || e.key === 'R') { playing = true; $('btnPlay').textContent = '⏸ 暂停'; show(0); }
+    else if (e.key === 'h' || e.key === 'H') $('app').classList.toggle('hidden-ctl');
+  });
+  try { const p = new URLSearchParams(location.search); if (p.get('present') === '1') $('app').classList.add('hidden-ctl'); const s = p.get('scenario'); if (s && SCENARIOS.some(x => x.id === s)) sc = SCENARIOS.find(x => x.id === s); } catch (e) { /* no-op */ }
+
+  renderTabs(); buildStatic(); show(0);
+})();
+</script>
+</body>
+</html>

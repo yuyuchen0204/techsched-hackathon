@@ -1,0 +1,713 @@
+{
+ "generated_at": "2026-09-14T16:26:43.685663+00:00",
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10
+ ],
+ "orders_per_seed": 18,
+ "policy_version": "2026-09-14-v2",
+ "route_provider": "fixture",
+ "summary": {
+  "baseline": {
+   "events": 61,
+   "assignment_rate": 0.574,
+   "unassigned_by_priority": {
+    "P0": 0,
+    "P1": 6,
+    "P2": 10,
+    "P3": 10
+   },
+   "on_window_rate": 0.574,
+   "urgent_events": 10,
+   "urgent_unserved": 6,
+   "urgent_response_minutes_mean": 2,
+   "travel_delta_total": 1006,
+   "affected_total": 0,
+   "technician_changes_total": 0,
+   "shift_minutes_total": 0,
+   "hard_or_authority_violations": 0,
+   "solve_ms_mean": 0,
+   "solve_ms_max": 0,
+   "decisions": {
+    "assign": 35,
+    "unresolved": 26
+   }
+  },
+  "proposed": {
+   "events": 61,
+   "assignment_rate": 0.639,
+   "unassigned_by_priority": {
+    "P0": 0,
+    "P1": 3,
+    "P2": 9,
+    "P3": 10
+   },
+   "on_window_rate": 0.639,
+   "urgent_events": 10,
+   "urgent_unserved": 3,
+   "urgent_response_minutes_mean": 0,
+   "travel_delta_total": 1121,
+   "affected_total": 6,
+   "technician_changes_total": 3,
+   "shift_minutes_total": 205,
+   "hard_or_authority_violations": 0,
+   "solve_ms_mean": 0.9,
+   "solve_ms_max": 17,
+   "decisions": {
+    "auto": 28,
+    "manual": 11,
+    "unresolved": 22
+   }
+  }
+ },
+ "per_seed": [
+  {
+   "seed": 1,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_1_07",
+    "ev_1_04"
+   ],
+   "initial_ms": 8,
+   "events": 6,
+   "summary": {
+    "baseline": {
+     "events": 6,
+     "assignment_rate": 0.667,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 0
+     },
+     "on_window_rate": 0.667,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 104,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 4,
+      "unresolved": 2
+     }
+    },
+    "proposed": {
+     "events": 6,
+     "assignment_rate": 0.833,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 0
+     },
+     "on_window_rate": 0.833,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 149,
+     "affected_total": 1,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 19,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0.3,
+     "solve_ms_max": 2,
+     "decisions": {
+      "auto": 4,
+      "manual": 1,
+      "unresolved": 1
+     }
+    }
+   }
+  },
+  {
+   "seed": 2,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_2_03"
+   ],
+   "initial_ms": 7,
+   "events": 4,
+   "summary": {
+    "baseline": {
+     "events": 4,
+     "assignment_rate": 0.75,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 1
+     },
+     "on_window_rate": 0.75,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 8,
+     "travel_delta_total": 112,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 3,
+      "unresolved": 1
+     }
+    },
+    "proposed": {
+     "events": 4,
+     "assignment_rate": 0.75,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 1
+     },
+     "on_window_rate": 0.75,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 92,
+     "affected_total": 1,
+     "technician_changes_total": 1,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0.5,
+     "solve_ms_max": 2,
+     "decisions": {
+      "auto": 3,
+      "unresolved": 1
+     }
+    }
+   }
+  },
+  {
+   "seed": 3,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_3_08"
+   ],
+   "initial_ms": 8,
+   "events": 7,
+   "summary": {
+    "baseline": {
+     "events": 7,
+     "assignment_rate": 0.857,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 1
+     },
+     "on_window_rate": 0.857,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 156,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 6,
+      "unresolved": 1
+     }
+    },
+    "proposed": {
+     "events": 7,
+     "assignment_rate": 0.857,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 1
+     },
+     "on_window_rate": 0.857,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 156,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "auto": 5,
+      "manual": 1,
+      "unresolved": 1
+     }
+    }
+   }
+  },
+  {
+   "seed": 4,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_4_04",
+    "ev_4_14",
+    "ev_4_11"
+   ],
+   "initial_ms": 6,
+   "events": 7,
+   "summary": {
+    "baseline": {
+     "events": 7,
+     "assignment_rate": 0.429,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 3,
+      "P3": 0
+     },
+     "on_window_rate": 0.429,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 30,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 3,
+      "unresolved": 4
+     }
+    },
+    "proposed": {
+     "events": 7,
+     "assignment_rate": 0.714,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 2,
+      "P3": 0
+     },
+     "on_window_rate": 0.714,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 90,
+     "affected_total": 2,
+     "technician_changes_total": 1,
+     "shift_minutes_total": 72,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 1.3,
+     "solve_ms_max": 9,
+     "decisions": {
+      "auto": 3,
+      "manual": 2,
+      "unresolved": 2
+     }
+    }
+   }
+  },
+  {
+   "seed": 5,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_5_08"
+   ],
+   "initial_ms": 6,
+   "events": 5,
+   "summary": {
+    "baseline": {
+     "events": 5,
+     "assignment_rate": 0.6,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 2
+     },
+     "on_window_rate": 0.6,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 109,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 3,
+      "unresolved": 2
+     }
+    },
+    "proposed": {
+     "events": 5,
+     "assignment_rate": 0.6,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 0,
+      "P3": 2
+     },
+     "on_window_rate": 0.6,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 127,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 1.4,
+     "solve_ms_max": 7,
+     "decisions": {
+      "auto": 2,
+      "manual": 1,
+      "unresolved": 2
+     }
+    }
+   }
+  },
+  {
+   "seed": 6,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_6_00"
+   ],
+   "initial_ms": 7,
+   "events": 7,
+   "summary": {
+    "baseline": {
+     "events": 7,
+     "assignment_rate": 0.429,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 2,
+      "P3": 1
+     },
+     "on_window_rate": 0.429,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 78,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 3,
+      "unresolved": 4
+     }
+    },
+    "proposed": {
+     "events": 7,
+     "assignment_rate": 0.429,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 2,
+      "P3": 1
+     },
+     "on_window_rate": 0.429,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 78,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0.9,
+     "solve_ms_max": 6,
+     "decisions": {
+      "auto": 3,
+      "unresolved": 4
+     }
+    }
+   }
+  },
+  {
+   "seed": 7,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_7_00",
+    "ev_7_05",
+    "ev_7_02",
+    "ev_7_07"
+   ],
+   "initial_ms": 6,
+   "events": 6,
+   "summary": {
+    "baseline": {
+     "events": 6,
+     "assignment_rate": 0.667,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 0
+     },
+     "on_window_rate": 0.667,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 138,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 4,
+      "unresolved": 2
+     }
+    },
+    "proposed": {
+     "events": 6,
+     "assignment_rate": 0.667,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 0
+     },
+     "on_window_rate": 0.667,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 138,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 2.8,
+     "solve_ms_max": 17,
+     "decisions": {
+      "auto": 4,
+      "unresolved": 2
+     }
+    }
+   }
+  },
+  {
+   "seed": 8,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_8_05",
+    "ev_8_11"
+   ],
+   "initial_ms": 7,
+   "events": 6,
+   "summary": {
+    "baseline": {
+     "events": 6,
+     "assignment_rate": 0.333,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 2
+     },
+     "on_window_rate": 0.333,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 36,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 2,
+      "unresolved": 4
+     }
+    },
+    "proposed": {
+     "events": 6,
+     "assignment_rate": 0.333,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 2
+     },
+     "on_window_rate": 0.333,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 36,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0.2,
+     "solve_ms_max": 1,
+     "decisions": {
+      "auto": 2,
+      "unresolved": 4
+     }
+    }
+   }
+  },
+  {
+   "seed": 9,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_9_11"
+   ],
+   "initial_ms": 9,
+   "events": 6,
+   "summary": {
+    "baseline": {
+     "events": 6,
+     "assignment_rate": 0.333,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 1,
+      "P2": 1,
+      "P3": 2
+     },
+     "on_window_rate": 0.333,
+     "urgent_events": 1,
+     "urgent_unserved": 1,
+     "urgent_response_minutes_mean": null,
+     "travel_delta_total": 75,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 2,
+      "unresolved": 4
+     }
+    },
+    "proposed": {
+     "events": 6,
+     "assignment_rate": 0.5,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 2
+     },
+     "on_window_rate": 0.5,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 87,
+     "affected_total": 2,
+     "technician_changes_total": 1,
+     "shift_minutes_total": 114,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 1.2,
+     "solve_ms_max": 7,
+     "decisions": {
+      "manual": 3,
+      "unresolved": 3
+     }
+    }
+   }
+  },
+  {
+   "seed": 10,
+   "orders": 18,
+   "initial_status": "partial",
+   "initial_unassigned": [
+    "ev_10_00",
+    "ev_10_07",
+    "ev_10_04"
+   ],
+   "initial_ms": 5,
+   "events": 7,
+   "summary": {
+    "baseline": {
+     "events": 7,
+     "assignment_rate": 0.714,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 1
+     },
+     "on_window_rate": 0.714,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 168,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0,
+     "solve_ms_max": 0,
+     "decisions": {
+      "assign": 5,
+      "unresolved": 2
+     }
+    },
+    "proposed": {
+     "events": 7,
+     "assignment_rate": 0.714,
+     "unassigned_by_priority": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 1
+     },
+     "on_window_rate": 0.714,
+     "urgent_events": 1,
+     "urgent_unserved": 0,
+     "urgent_response_minutes_mean": 0,
+     "travel_delta_total": 168,
+     "affected_total": 0,
+     "technician_changes_total": 0,
+     "shift_minutes_total": 0,
+     "hard_or_authority_violations": 0,
+     "solve_ms_mean": 0.7,
+     "solve_ms_max": 5,
+     "decisions": {
+      "auto": 2,
+      "manual": 3,
+      "unresolved": 2
+     }
+    }
+   }
+  }
+ ],
+ "notes": [
+  "baseline = nearest feasible zero-disturbance insertion (no repair moves, no scoring)",
+  "proposed = scored candidates with authority-bounded repair; manual plans counted as approved offline",
+  "unassigned events count as missed in on_window_rate; response time only over served urgent events",
+  "synthetic scenarios; no claim of real-world savings"
+ ]
+}

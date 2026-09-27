@@ -1,0 +1,105 @@
+# Business policy. Confirmed business rules live here; PolicyEngine is the single interpreter.
+# Changing a boolean here never bypasses low-score review or hard constraints.
+policy_version: "2026-09-16-v3"
+
+dispatch:
+  auto_score_threshold: 70
+  threshold_operator: ">"
+  decision_score: minimum_new_or_changed_assignment
+
+priority:
+  normal_base: P3
+  paid_base: P1                   # paid to take a slot that is not free — a few undeparted P3 may shift
+  # "Send someone now, as fast as possible" is a different product from "buy a busy slot": the customer is telling us
+  # something is wrong right now (4th meeting: 由于安全问题P0). It enters at P0 and therefore may also move P2 work,
+  # bounded by the P0 rule below (max_affected 5, review required whenever anything moves).
+  paid_now_base: P0
+  expedite_now_window_minutes: 180   # the horizon an "as soon as possible" order is promised within
+  paid_can_escalate_to_p0: true
+
+reschedule:
+  P3:
+    max_affected: 0
+    movable_priorities: []
+  P2:
+    max_affected: 0
+    movable_priorities: []
+    allow_zero_disruption_repair_if_unassigned: true
+  P1:
+    max_affected: unlimited              # paid / expedited: send whoever can come soonest; any number of undeparted P3 may move (each inside its own window)
+    movable_priorities: [P3]
+    require_review_if_within_limit: false
+  P0:
+    max_affected: 5
+    movable_priorities: [P2, P3]
+    require_review_if_affected: true
+
+execution:
+  locked_statuses: [EN_ROUTE, ARRIVED, IN_PROGRESS]
+  # A technician may not set off before the schedule says to: an early departure silently rewrites the plan
+  # (actual time wins) and locks the task, so it was a one-tap way to break the day. Minutes of leeway allowed
+  # before the planned departure; 0 = strictly not before the planned time. Engineering default, not a labour rule.
+  depart_grace_minutes: 0
+  # When a technician becomes unavailable mid-execution, which states are released and re-dispatched automatically.
+  # EN_ROUTE: still driving, nobody is at the customer's door — the order goes back on the board at P0 and the
+  #   recovery dispatch sends whoever can reach the customer soonest.
+  # ARRIVED / IN_PROGRESS are deliberately NOT listed: the technician is inside the customer's home, possibly mid-repair,
+  #   and a second technician needs the first one's context. Those keep the lock and go to a human ("Stop this visit").
+  auto_release_on_unavailable: [EN_ROUTE]
+
+customer_cancel:
+  allowed_before_departure_only: true
+
+risk:
+  deadline_field: window_end
+  scan_interval_seconds: 60
+  cancellation_p0_remaining_minutes_less_than: 30
+  cancellation_p1_remaining_minutes_inclusive: [30, 120]
+  cancellation_p2_remaining_minutes_greater_than: 120
+  approaching_deadline_p2_minutes_inclusive: 30
+
+standby:
+  max_candidates: 3
+
+# Engineering defaults (not confirmed business policy) — adjustable, documented in docs/scoring.md
+scoring:
+  weights:
+    skill_fit: 0.30
+    travel: 0.25
+    response: 0.20
+    workload: 0.10
+    stability: 0.15
+  scales:
+    travel_full_penalty_minutes: 60
+    response_full_penalty_minutes: 120
+    shift_full_penalty_minutes: 60
+    affected_reference_count: 2
+
+solver:
+  initial_budget_ms: 3000
+  repair_budget_ms: 5000
+  max_relocate_candidates: 40
+
+candidate:
+  expiry_sim_minutes: 30
+
+# V3 — dynamic rest (engineering defaults for the demo; not labour law or a fatigue model)
+breaks:
+  evaluate_after_work_minutes: 180      # cumulative travel+service since the last recorded break
+  lookahead_minutes: 90                 # search window for a rest opportunity once the threshold is reached
+  escalate_after_work_minutes: 240      # no valid rest by then → high-priority human attention item
+  default_break_minutes: 30
+  slot_step_minutes: 15
+  pre_evaluate_minutes: 60              # start looking this long before the threshold is predicted to be reached
+
+# V3 — agent runtime budgets (§11.5)
+agent:
+  max_tool_calls_per_wakeup: 12
+  max_plan_searches_per_wakeup: 3
+  transient_retries: 2
+
+# V3 — repair duration data (§13)
+duration_prediction:
+  mode: shadow                 # shadow = predictions and errors only; official durations stay on the CSV
+  min_samples_per_problem: 5
+  history_window_days: 90

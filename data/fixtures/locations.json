@@ -1,0 +1,131 @@
+{
+ "version": "fixture-v1",
+ "locations": [
+  {
+   "id": "loc_depot_ubi",
+   "name": "Ubi Depot (service base)",
+   "lat": 1.3298,
+   "lon": 103.899,
+   "area": "Ubi"
+  },
+  {
+   "id": "loc_tampines",
+   "name": "Tampines Hub",
+   "lat": 1.3525,
+   "lon": 103.9403,
+   "area": "Tampines"
+  },
+  {
+   "id": "loc_bedok",
+   "name": "Bedok Mall",
+   "lat": 1.3249,
+   "lon": 103.9296,
+   "area": "Bedok"
+  },
+  {
+   "id": "loc_paya_lebar",
+   "name": "Paya Lebar Quarter",
+   "lat": 1.3176,
+   "lon": 103.8928,
+   "area": "Paya Lebar"
+  },
+  {
+   "id": "loc_toa_payoh",
+   "name": "Toa Payoh Central",
+   "lat": 1.3324,
+   "lon": 103.8474,
+   "area": "Toa Payoh"
+  },
+  {
+   "id": "loc_bishan",
+   "name": "Bishan Junction 8",
+   "lat": 1.3508,
+   "lon": 103.8484,
+   "area": "Bishan"
+  },
+  {
+   "id": "loc_ang_mo_kio",
+   "name": "Ang Mo Kio Hub",
+   "lat": 1.3691,
+   "lon": 103.848,
+   "area": "Ang Mo Kio"
+  },
+  {
+   "id": "loc_serangoon",
+   "name": "Serangoon NEX",
+   "lat": 1.3505,
+   "lon": 103.8722,
+   "area": "Serangoon"
+  },
+  {
+   "id": "loc_hougang",
+   "name": "Hougang Mall",
+   "lat": 1.3725,
+   "lon": 103.8934,
+   "area": "Hougang"
+  },
+  {
+   "id": "loc_punggol",
+   "name": "Punggol Waterway Point",
+   "lat": 1.4064,
+   "lon": 103.9021,
+   "area": "Punggol"
+  },
+  {
+   "id": "loc_bugis",
+   "name": "Bugis Junction",
+   "lat": 1.2996,
+   "lon": 103.8555,
+   "area": "Bugis"
+  },
+  {
+   "id": "loc_orchard",
+   "name": "Orchard Road",
+   "lat": 1.304,
+   "lon": 103.8318,
+   "area": "Orchard"
+  },
+  {
+   "id": "loc_queenstown",
+   "name": "Queenstown MRT",
+   "lat": 1.2945,
+   "lon": 103.806,
+   "area": "Queenstown"
+  },
+  {
+   "id": "loc_clementi",
+   "name": "Clementi Mall",
+   "lat": 1.315,
+   "lon": 103.7644,
+   "area": "Clementi"
+  },
+  {
+   "id": "loc_jurong_east",
+   "name": "Jurong East JEM",
+   "lat": 1.3334,
+   "lon": 103.743,
+   "area": "Jurong East"
+  },
+  {
+   "id": "loc_woodlands",
+   "name": "Woodlands Causeway Point",
+   "lat": 1.436,
+   "lon": 103.7861,
+   "area": "Woodlands"
+  },
+  {
+   "id": "loc_yishun",
+   "name": "Yishun Northpoint",
+   "lat": 1.4294,
+   "lon": 103.8355,
+   "area": "Yishun"
+  },
+  {
+   "id": "loc_marine_parade",
+   "name": "Parkway Parade",
+   "lat": 1.3013,
+   "lon": 103.9052,
+   "area": "Marine Parade"
+  }
+ ]
+}

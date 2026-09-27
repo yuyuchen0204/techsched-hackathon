@@ -1,0 +1,440 @@
+{
+ "name": "main",
+ "description": "Busy baseline (S1): 8 technicians, 20 synthetic orders across the real catalog's trades. Two tasks already departed (locked). Times are Asia/Singapore local HH:MM on the scenario day. All customers/phones are synthetic.",
+ "seed": 42,
+ "sim_start": "08:30",
+ "technicians": [
+  {
+   "id": "tech_01",
+   "name": "Aaron Lim",
+   "home": "loc_depot_ubi",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "12:00",
+     "12:45"
+    ]
+   ],
+   "skills": {
+    "Air Conditioning": 5,
+    "Refrigerator": 4
+   }
+  },
+  {
+   "id": "tech_02",
+   "name": "Bala Krishnan",
+   "home": "loc_tampines",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "12:30",
+     "13:15"
+    ]
+   ],
+   "skills": {
+    "Air Conditioning": 3,
+    "Washing Machine": 4,
+    "Refrigerator": 3
+   }
+  },
+  {
+   "id": "tech_03",
+   "name": "Chen Wei",
+   "home": "loc_toa_payoh",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "12:00",
+     "12:45"
+    ]
+   ],
+   "skills": {
+    "Plumbing & Bathroom": 5,
+    "Water Heater": 4
+   }
+  },
+  {
+   "id": "tech_04",
+   "name": "Devi Nair",
+   "home": "loc_bishan",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "13:00",
+     "13:45"
+    ]
+   ],
+   "skills": {
+    "Electrical & Lighting": 5,
+    "Network & Smart Devices": 3,
+    "Locks & Hardware": 2
+   }
+  },
+  {
+   "id": "tech_05",
+   "name": "Ethan Tan",
+   "home": "loc_bedok",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "12:00",
+     "12:45"
+    ]
+   ],
+   "skills": {
+    "Water Heater": 5,
+    "Gas Stove": 5,
+    "Plumbing & Bathroom": 3
+   }
+  },
+  {
+   "id": "tech_06",
+   "name": "Farah Osman",
+   "home": "loc_hougang",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "12:30",
+     "13:15"
+    ]
+   ],
+   "skills": {
+    "Locks & Hardware": 4,
+    "Furniture & Woodwork": 4,
+    "Network & Smart Devices": 4
+   }
+  },
+  {
+   "id": "tech_07",
+   "name": "Gopal Raj",
+   "home": "loc_serangoon",
+   "shift": [
+    "08:00",
+    "18:00"
+   ],
+   "breaks": [
+    [
+     "13:00",
+     "13:45"
+    ]
+   ],
+   "skills": {
+    "Washing Machine": 5,
+    "Refrigerator": 5,
+    "Air Conditioning": 2
+   }
+  },
+  {
+   "id": "tech_08",
+   "name": "Hana Koh",
+   "home": "loc_queenstown",
+   "shift": [
+    "09:00",
+    "19:00"
+   ],
+   "breaks": [
+    [
+     "13:00",
+     "13:45"
+    ]
+   ],
+   "skills": {
+    "Electrical & Lighting": 3,
+    "Network & Smart Devices": 5,
+    "Furniture & Woodwork": 2
+   }
+  }
+ ],
+ "orders": [
+  {
+   "id": "wo_001",
+   "customer": "Mrs Tan",
+   "phone": "+65 8000 0001",
+   "location": "loc_bedok",
+   "trade": "Air Conditioning",
+   "problem": "No cooling or heating",
+   "window": [
+    "08:30",
+    "09:30"
+   ],
+   "description": "Living room aircon blows warm air",
+   "execution": {
+    "technician": "tech_01",
+    "departed_at": "08:12",
+    "status": "EN_ROUTE"
+   }
+  },
+  {
+   "id": "wo_002",
+   "customer": "Mr Ong",
+   "phone": "+65 8000 0002",
+   "location": "loc_bishan",
+   "trade": "Plumbing & Bathroom",
+   "problem": "Pipe leakage",
+   "window": [
+    "08:15",
+    "09:15"
+   ],
+   "description": "Kitchen pipe dripping under sink",
+   "execution": {
+    "technician": "tech_03",
+    "departed_at": "08:02",
+    "arrived_at": "08:17",
+    "started_at": "08:17",
+    "status": "IN_PROGRESS"
+   }
+  },
+  {
+   "id": "wo_003",
+   "customer": "Ms Lee",
+   "phone": "+65 8000 0003",
+   "location": "loc_tampines",
+   "trade": "Washing Machine",
+   "problem": "Not draining",
+   "window": [
+    "09:00",
+    "10:30"
+   ],
+   "description": "Water stays in drum after cycle"
+  },
+  {
+   "id": "wo_004",
+   "customer": "Mr Kumar",
+   "phone": "+65 8000 0004",
+   "location": "loc_paya_lebar",
+   "trade": "Air Conditioning",
+   "problem": "Water leakage",
+   "window": [
+    "09:30",
+    "11:00"
+   ],
+   "description": "Aircon dripping onto floor"
+  },
+  {
+   "id": "wo_005",
+   "customer": "Mdm Halimah",
+   "phone": "+65 8000 0005",
+   "location": "loc_toa_payoh",
+   "trade": "Water Heater",
+   "problem": "No hot water",
+   "window": [
+    "09:30",
+    "11:00"
+   ],
+   "description": "Storage heater gives cold water"
+  },
+  {
+   "id": "wo_006",
+   "customer": "Mr Goh",
+   "phone": "+65 8000 0006",
+   "location": "loc_ang_mo_kio",
+   "trade": "Electrical & Lighting",
+   "problem": "Outlet no power",
+   "window": [
+    "09:00",
+    "10:30"
+   ],
+   "description": "Bedroom sockets dead"
+  },
+  {
+   "id": "wo_007",
+   "customer": "Ms Wong",
+   "phone": "+65 8000 0007",
+   "location": "loc_hougang",
+   "trade": "Locks & Hardware",
+   "problem": "Lock won't open",
+   "window": [
+    "09:30",
+    "11:00"
+   ],
+   "description": "Main door lock jammed"
+  },
+  {
+   "id": "wo_008",
+   "customer": "Mr Raj",
+   "phone": "+65 8000 0008",
+   "location": "loc_serangoon",
+   "trade": "Refrigerator",
+   "problem": "Not cooling",
+   "window": [
+    "10:00",
+    "11:30"
+   ],
+   "description": "Fridge warm, freezer ok"
+  },
+  {
+   "id": "wo_009",
+   "customer": "Mrs Chua",
+   "phone": "+65 8000 0009",
+   "location": "loc_marine_parade",
+   "trade": "Air Conditioning",
+   "problem": "Unusual noise",
+   "window": [
+    "10:30",
+    "12:00"
+   ],
+   "description": "Rattling sound from unit"
+  },
+  {
+   "id": "wo_010",
+   "customer": "Mr Ng",
+   "phone": "+65 8000 0010",
+   "location": "loc_punggol",
+   "trade": "Gas Stove",
+   "problem": "Won't ignite",
+   "window": [
+    "10:30",
+    "12:00"
+   ],
+   "description": "Left burner no spark"
+  },
+  {
+   "id": "wo_011",
+   "customer": "Ms Devi",
+   "phone": "+65 8000 0011",
+   "location": "loc_bugis",
+   "trade": "Network & Smart Devices",
+   "problem": "WiFi connection failure",
+   "window": [
+    "10:00",
+    "11:30"
+   ],
+   "description": "Router light red"
+  },
+  {
+   "id": "wo_012",
+   "customer": "Mr Lim",
+   "phone": "+65 8000 0012",
+   "location": "loc_clementi",
+   "trade": "Electrical & Lighting",
+   "problem": "Light fixture not working",
+   "window": [
+    "11:00",
+    "12:30"
+   ],
+   "description": "Ceiling light dead after flicker"
+  },
+  {
+   "id": "wo_013",
+   "customer": "Mdm Siti",
+   "phone": "+65 8000 0013",
+   "location": "loc_yishun",
+   "trade": "Plumbing & Bathroom",
+   "problem": "Toilet clog",
+   "window": [
+    "11:00",
+    "12:30"
+   ],
+   "description": "Toilet not flushing"
+  },
+  {
+   "id": "wo_014",
+   "customer": "Mr Teo",
+   "phone": "+65 8000 0014",
+   "location": "loc_tampines",
+   "trade": "Air Conditioning",
+   "problem": "Remote control or panel malfunction",
+   "window": [
+    "13:00",
+    "14:30"
+   ],
+   "description": "Remote not responding"
+  },
+  {
+   "id": "wo_015",
+   "customer": "Ms Koh",
+   "phone": "+65 8000 0015",
+   "location": "loc_orchard",
+   "trade": "Furniture & Woodwork",
+   "problem": "Cabinet door or drawer damage",
+   "window": [
+    "13:30",
+    "15:00"
+   ],
+   "description": "Kitchen cabinet hinge broken"
+  },
+  {
+   "id": "wo_016",
+   "customer": "Mr Ho",
+   "phone": "+65 8000 0016",
+   "location": "loc_jurong_east",
+   "trade": "Washing Machine",
+   "problem": "Spin cycle malfunction",
+   "window": [
+    "13:00",
+    "14:30"
+   ],
+   "description": "Drum does not spin"
+  },
+  {
+   "id": "wo_017",
+   "customer": "Mrs Yeo",
+   "phone": "+65 8000 0017",
+   "location": "loc_woodlands",
+   "trade": "Water Heater",
+   "problem": "Unstable temperature",
+   "window": [
+    "14:00",
+    "15:30"
+   ],
+   "description": "Shower alternates hot/cold"
+  },
+  {
+   "id": "wo_018",
+   "customer": "Mr Ang",
+   "phone": "+65 8000 0018",
+   "location": "loc_bedok",
+   "trade": "Refrigerator",
+   "problem": "Icing or defrost malfunction",
+   "window": [
+    "14:30",
+    "16:00"
+   ],
+   "description": "Heavy frost buildup"
+  },
+  {
+   "id": "wo_019",
+   "customer": "Ms Fong",
+   "phone": "+65 8000 0019",
+   "location": "loc_toa_payoh",
+   "trade": "Locks & Hardware",
+   "problem": "Loose door handle or hinge",
+   "window": [
+    "15:00",
+    "16:30"
+   ],
+   "description": "Bedroom door handle loose"
+  },
+  {
+   "id": "wo_020",
+   "customer": "Mr Seah",
+   "phone": "+65 8000 0020",
+   "location": "loc_paya_lebar",
+   "trade": "Electrical & Lighting",
+   "problem": "Switch malfunction",
+   "window": [
+    "15:30",
+    "17:00"
+   ],
+   "description": "Hall switch stuck"
+  }
+ ]
+}

@@ -1,0 +1,24 @@
+# NOT verified on the development machine (Docker not installed there). Written to the standard layout; expect
+# to debug on first run. The backend resolves paths relative to its repo root, so config/data are mounted at /.
+services:
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      APP_MODE: demo
+      APP_TIMEZONE: Asia/Singapore
+      REPAIR_CATALOG_PATH: /data/reference/repair_object_problem_database.csv
+      DATABASE_URL: sqlite:////data/app.db
+      POLICY_PATH: /config/policy.yaml
+      LLM_MODE: ${LLM_MODE:-mock}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      ROUTE_MODE: ${ROUTE_MODE:-fixture}
+      OSRM_BASE_URL: ${OSRM_BASE_URL:-}
+    volumes:
+      - ./data:/data
+      - ./config:/config
+    ports: ["8100:8100"]
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    depends_on: [backend]
+    ports: ["5174:80"]

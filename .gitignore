@@ -1,0 +1,19 @@
+# python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+# node
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+# runtime data (DB, route/geocode caches)
+data/app.db*
+data/cache/
+# env / local secrets
+.env
+backend/api_test.py
+.DS_Store
+docs/.handbook-build/

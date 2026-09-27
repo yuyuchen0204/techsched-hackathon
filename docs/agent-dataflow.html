@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<title>TechSched 工单流转</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#e9edf3; --ink:#141a22; --muted:#66707f;
+  --line:#dde2ea; --line-strong:#b6bfcb;
+  --agent:#2c5be6; --agent-bg:#eaf0ff; --agent-glow:rgba(44,91,230,.26);
+  --tool:#c27505;  --tool-bg:#fff5df;  --tool-glow:rgba(194,117,5,.28);
+  --actor:#159a67; --actor-bg:#e4f6ee; --actor-glow:rgba(21,154,103,.26);
+  --flow:#d6336c; --flow-bg:#fff0f5; --flow-glow:rgba(214,51,108,.35);
+  --ok:#159a67;
+  --agent-dim:rgba(44,91,230,.55); --tool-dim:rgba(194,117,5,.7); --actor-dim:rgba(21,154,103,.6);
+  --control:#4b5a75; --control-bg:#eef1f6; --control-glow:rgba(75,90,117,.26); --control-dim:rgba(75,90,117,.5);
+  --shadow:0 1px 2px rgba(20,26,34,.06),0 10px 28px rgba(20,26,34,.10);
+  --sans:"IBM Plex Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1217; --surface:#161b22; --surface-2:#1f2733; --ink:#e7ecf3; --muted:#94a0b1;
+    --line:#29323e; --line-strong:#465262;
+    --agent:#7391ff; --agent-bg:#182339; --agent-glow:rgba(115,145,255,.28);
+    --tool:#f2a93b;  --tool-bg:#2b2313;  --tool-glow:rgba(242,169,59,.28);
+    --actor:#3ccf92; --actor-bg:#12302a; --actor-glow:rgba(60,207,146,.26);
+    --flow:#ff5f95; --flow-bg:#34192a; --flow-glow:rgba(255,95,149,.38);
+    --ok:#3ccf92;
+    --agent-dim:rgba(115,145,255,.6); --tool-dim:rgba(242,169,59,.7); --actor-dim:rgba(60,207,146,.6);
+    --control:#a9b6cc; --control-bg:#1e2632; --control-glow:rgba(169,182,204,.26); --control-dim:rgba(169,182,204,.5);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#161b22; --surface-2:#1f2733; --ink:#e7ecf3; --muted:#94a0b1;
+  --line:#29323e; --line-strong:#465262;
+  --agent:#7391ff; --agent-bg:#182339; --agent-glow:rgba(115,145,255,.28);
+  --tool:#f2a93b;  --tool-bg:#2b2313;  --tool-glow:rgba(242,169,59,.28);
+  --actor:#3ccf92; --actor-bg:#12302a; --actor-glow:rgba(60,207,146,.26);
+  --flow:#ff5f95; --flow-bg:#34192a; --flow-glow:rgba(255,95,149,.38);
+  --ok:#3ccf92;
+  --agent-dim:rgba(115,145,255,.6); --tool-dim:rgba(242,169,59,.7); --actor-dim:rgba(60,207,146,.6);
+  --control:#a9b6cc; --control-bg:#1e2632; --control-glow:rgba(169,182,204,.26); --control-dim:rgba(169,182,204,.5);
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,select{font:inherit;color:inherit}
+button:focus-visible,select:focus-visible,.step:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
+.app{max-width:1720px;margin:0 auto;padding-inline:16px;padding-block:12px 28px}
+
+/* header */
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding-block:4px 12px}
+.brand h1{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.hint{margin-left:auto;font-size:11px;color:var(--muted)}
+
+/* layout */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:1060px){.main{grid-template-columns:1fr}}
+
+/* stage */
+.stage-wrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-x:auto;overflow-y:hidden;position:relative}
+.stage-scaler{position:relative;margin:0 auto}
+.stage{position:absolute;left:0;top:0;width:1240px;height:720px;transform-origin:0 0}
+.edges,.overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.cap{position:absolute;left:16px;font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--muted)}
+.cap small{display:block;margin-top:1px;font-size:9px;font-weight:500;letter-spacing:.02em;text-transform:none}
+
+.node{position:absolute;display:flex;flex-direction:column;gap:1px;padding:8px 12px;background:var(--surface);
+  border:2px solid var(--line-strong);opacity:.5;transition:opacity .35s,border-color .35s,background .35s,box-shadow .35s}
+.node.agent{border-radius:12px;border-color:var(--agent-dim)}
+.node.control{border-radius:6px;border-width:4px;border-style:double;border-color:var(--control-dim);padding:6px 11px}
+.node.actor{border-radius:999px;border-style:dotted;border-color:var(--actor-dim);text-align:center;padding:6px 14px}
+.node.tool{border-radius:50%;border-style:dashed;border-color:var(--tool-dim);text-align:center;align-items:center;justify-content:center;padding:9px 14px 10px;overflow:visible}
+.node .k{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
+.node.agent .k{color:var(--agent)} .node.tool .k{color:var(--tool)} .node.actor .k{color:var(--actor)} .node.control .k{color:var(--control)}
+.node .l{font-size:13px;font-weight:600;line-height:1.2;color:var(--ink);white-space:nowrap}
+.node.tool .l{font-size:12.5px}
+.node .s{font-size:9.5px;letter-spacing:-.01em;color:var(--muted);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.node .d{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}
+.node .d>div{overflow:hidden;min-height:0}
+.node .d p{margin:5px 0 0;padding-top:5px;border-top:1px dashed var(--line);font-size:10.5px;line-height:1.35;color:var(--ink);text-align:left}
+.node.actor .d p{text-align:center}
+.node .d p::before{content:"▸ ";font-weight:700}
+/* a tool's "what it is doing" hangs below the ellipse as a bubble, so the text never meets the curve */
+.node.tool .d{grid-template-rows:1fr;position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%) translateY(-4px);width:158px;
+  background:var(--surface);border:1.5px dashed var(--tool);border-radius:8px;box-shadow:var(--shadow);opacity:0;transition:opacity .3s,transform .3s}
+.node.tool .d::before{content:"";position:absolute;left:50%;top:-6px;width:9px;height:9px;transform:translateX(-50%) rotate(45deg);background:var(--surface);border-left:1.5px dashed var(--tool);border-top:1.5px dashed var(--tool)}
+.node.tool .d p{margin:0;padding:5px 9px 6px;border-top:0;text-align:center}
+.node.tool.active .d{opacity:1;transform:translateX(-50%) translateY(0)}
+.node.active{opacity:1}
+.node.active .d{grid-template-rows:1fr}
+.node.agent.active{border-color:var(--agent);background:var(--agent-bg);box-shadow:0 0 0 4px var(--agent-glow),0 12px 30px var(--agent-glow)}
+.node.tool.active{border-color:var(--tool);background:var(--tool-bg);box-shadow:0 0 0 4px var(--tool-glow),0 12px 30px var(--tool-glow)}
+.node.actor.active{border-color:var(--actor);background:var(--actor-bg);box-shadow:0 0 0 4px var(--actor-glow),0 12px 30px var(--actor-glow)}
+.node.control.active{border-color:var(--control);background:var(--control-bg);box-shadow:0 0 0 4px var(--control-glow),0 12px 30px var(--control-glow)}
+.node.agent.active .d p::before{color:var(--agent)}
+.node.tool.active .d p::before{color:var(--tool)}
+.node.actor.active .d p::before{color:var(--actor)}
+.node.control.active .d p::before{color:var(--control)}
+
+.edges path.e{fill:none;stroke:var(--line-strong);stroke-width:1.3;opacity:.75;marker-end:url(#arr);transition:opacity .3s}
+.edges path.e.lit{stroke:var(--flow);stroke-width:2.4;stroke-dasharray:7 6;opacity:1;marker-end:url(#arrLit);animation:ants .8s linear infinite}
+.edges path.e.next{stroke:var(--flow);stroke-width:1.8;stroke-dasharray:2 5;opacity:.75;marker-end:url(#arrLit)}
+@keyframes ants{to{stroke-dashoffset:-26}}
+
+.chip{position:absolute;max-width:256px;padding:5px 9px 6px;background:var(--surface);border:1.5px solid var(--flow);border-radius:8px;
+  box-shadow:var(--shadow);font-size:10.5px;line-height:1.3;opacity:0;transform:translate(-50%,-50%) translateY(6px);
+  transition:opacity .3s,transform .3s,border-color .3s;pointer-events:none;white-space:normal}
+.chip.show{opacity:1;transform:translate(-50%,-50%)}
+.chip .ck{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--flow);margin-right:6px;vertical-align:1px}
+.chip .cv{font-weight:500;color:var(--ink)}
+.chip.dim{border-color:var(--line-strong);opacity:.72}
+.chip.dim .ck{color:var(--muted)}
+.chip.end{border-color:var(--ok)}
+.chip.end .ck{color:var(--ok)}
+
+.token{transition:none}
+.token .core{fill:var(--flow);stroke:var(--surface);stroke-width:2.5}
+.token text{fill:#fff;font-size:8.5px;font-weight:700;font-family:var(--sans);text-anchor:middle}
+.token .ring{fill:none;stroke:var(--flow);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.token.ping .ring{animation:ping 1.1s ease-out 2}
+@keyframes ping{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+.token.hidden{visibility:hidden}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:10px 4px 0;font-size:11px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:18px;height:11px;border:2px solid var(--agent);border-radius:4px}
+.sw.tool{border-color:var(--tool);border-style:dashed;border-radius:50%;width:22px}
+.sw.actor{border-color:var(--actor);border-style:dotted;border-radius:999px}
+.sw.control{border-color:var(--control);border-style:double;border-width:4px;border-radius:3px}
+.sw.flow{width:12px;height:12px;border-radius:50%;background:var(--flow);border:2px solid var(--surface);box-shadow:0 0 0 1.5px var(--flow)}
+
+/* rail */
+.rail{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.card.now{border-width:2px}
+.card.now.agent{border-color:var(--agent)}
+.card.now.tool{border-color:var(--tool);border-style:dashed}
+.card.now.actor{border-color:var(--actor);border-style:dotted}
+.card.now.control{border-color:var(--control);border-style:double;border-width:4px}
+.summary{font-size:12px;color:var(--muted);margin:0}
+.rowx{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.badge{font-size:9.5px;font-weight:700;letter-spacing:.14em;padding:3px 8px;border-radius:999px;text-transform:uppercase}
+.badge.agent{background:var(--agent-bg);color:var(--agent)}
+.badge.tool{background:var(--tool-bg);color:var(--tool)}
+.badge.actor{background:var(--actor-bg);color:var(--actor)}
+.badge.control{background:var(--control-bg);color:var(--control)}
+.count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nodename{margin:8px 0 0;font-size:16px;font-weight:600;line-height:1.2}
+.nodesub{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.title{margin:8px 0 0;font-size:13.5px;font-weight:600}
+.doing{margin:4px 0 0;font-size:12px;color:var(--ink)}
+.doing b{font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.08em;margin-right:6px}
+.io{margin-top:10px;font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.io.out{color:var(--flow)}
+.iov{font-size:12px;font-weight:500;margin:3px 0 0;color:var(--ink);line-height:1.45;word-break:break-word}
+.fields{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.fields li{font-size:12px;line-height:1.45;padding-left:14px;position:relative;color:var(--ink);word-break:break-word}
+.fields li::before{content:"›";position:absolute;left:2px;color:var(--flow);font-weight:700}
+.endnote{margin:10px 0 0;font-size:12px;color:var(--ok);font-weight:600;min-height:1.4em}
+.progress{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;width:0;background:var(--flow)}
+.progress.hold i{background:var(--ok)}
+.controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;line-height:1.2}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--flow);border-color:var(--flow);color:#fff;min-width:74px}
+.controls label{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);margin-left:auto}
+.controls select{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:5px 6px;font-size:12px}
+.steps{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.step{display:flex;gap:8px;width:100%;text-align:left;padding:7px 10px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--muted);font-size:11.5px;cursor:pointer;line-height:1.35}
+.step:last-child{border-bottom:0}
+.step .n{flex:0 0 18px;width:18px;height:18px;border-radius:50%;border:1px solid var(--line-strong);font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;font-variant-numeric:tabular-nums}
+.step .t{min-width:0}
+.step .t b{font-weight:600;color:inherit}
+.step .kk{font-size:8.5px;font-weight:700;letter-spacing:.12em;padding:1px 5px;border-radius:999px;margin-right:5px;vertical-align:1px}
+.step .kk.agent{background:var(--agent-bg);color:var(--agent)}
+.step .kk.tool{background:var(--tool-bg);color:var(--tool)}
+.step .kk.actor{background:var(--actor-bg);color:var(--actor)}
+.step .kk.control{background:var(--control-bg);color:var(--control)}
+.step.now{background:var(--flow-bg);color:var(--ink)}
+.step.now .n{background:var(--flow);border-color:var(--flow);color:#fff}
+.step.done .n{background:var(--line-strong);border-color:var(--line-strong);color:var(--surface)}
+.step.todo{opacity:.62}
+.step .o{display:block;font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media (prefers-reduced-motion:reduce){
+  .edges path.e.lit{animation:none}
+  .token.ping .ring{animation:none}
+  .node,.chip,.node .d{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <h1>TechSched 工单流转</h1>
+      <p>一张工单在 Agent 系统里的完整流转 · 节点对应后端真实模块 · 边上标注每一步传递的数据字段</p>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="场景"></nav>
+    <span class="hint">空格 播放/暂停 · ← → 单步 · R 重播</span>
+  </header>
+
+  <div class="main">
+    <section>
+      <div class="stage-wrap" id="stageWrap">
+        <div class="stage-scaler" id="scaler">
+          <div class="stage" id="stage">
+            <svg class="edges" id="edges" viewBox="0 0 1240 720" aria-hidden="true">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--line-strong)"/></marker>
+                <marker id="arrLit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--flow)"/></marker>
+              </defs>
+              <g id="edgeLayer"></g>
+              <path id="measure" visibility="hidden" d="M0 0"/>
+            </svg>
+            <div class="cap" style="top:10px">APPS / HUMANS<small>客户端 · 调度员 · 技师端</small></div>
+            <div class="cap" style="top:150px">ORCHESTRATION<small>编排层 · 流程驱动 · 规则裁决 · 任务运行时（不是 Agent）</small></div>
+            <div class="cap" style="top:335px">AGENTS<small>三个逻辑 Agent</small></div>
+            <div class="cap" style="top:545px">TOOLS</div>
+            <div id="nodes"></div>
+            <div id="chips">
+              <div class="chip" id="chipIn"><span class="ck">输入</span><span class="cv"></span></div>
+              <div class="chip" id="chipOut"><span class="ck">输出</span><span class="cv"></span></div>
+            </div>
+            <svg class="overlay" viewBox="0 0 1240 720" aria-hidden="true">
+              <g class="token hidden" id="token">
+                <circle class="ring" r="14"/>
+                <circle class="core" r="13"/>
+                <text y="3.5">工单</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw"></i>Agent · 实线圆角</span>
+        <span><i class="sw control"></i>引擎 · 双线（编排 / 规则 / 运行时，非 Agent）</span>
+        <span><i class="sw tool"></i>Tool · 虚线椭圆</span>
+        <span><i class="sw actor"></i>App / 人 · 点线胶囊</span>
+        <span><i class="sw flow"></i>工单 · 数据现在在哪</span>
+        <span>边上的标签 = 这条边上传递的数据字段 · 同一时刻只有一个节点在工作，工具只在被调用时亮起</span>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <p class="summary" id="summary"></p>
+      <div class="card now" id="card">
+        <div class="rowx"><span class="badge" id="badge"></span><span class="count" id="count"></span></div>
+        <div class="nodename" id="nodeName"></div>
+        <div class="nodesub" id="nodeSub"></div>
+        <div class="title" id="stepTitle"></div>
+        <div class="doing"><b>正在做</b><span id="stepDoing"></span></div>
+        <div class="io">输入 · 上一步传来的数据</div>
+        <div class="iov" id="stepIn"></div>
+        <div class="io out">输出 · 这一步产出的字段</div>
+        <ul class="fields" id="stepOut"></ul>
+        <div class="endnote" id="endNote"></div>
+        <div class="progress" id="progress"><i id="bar"></i></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btnPrev" title="上一步 (←)">◀</button>
+        <button class="btn primary" id="btnPlay">⏸ 暂停</button>
+        <button class="btn" id="btnNext" title="下一步 (→)">▶</button>
+        <button class="btn" id="btnReplay" title="重播 (R)">⟲ 重播</button>
+        <label for="loopChk"><input type="checkbox" id="loopChk" checked> 循环</label>
+        <select id="speed" aria-label="速度">
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
+          <option value="2">2×</option>
+        </select>
+      </div>
+      <div class="steps" id="steps"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+const W = 1240, H = 720;
+const SIZE = { actor: { w: 170, h: 52 }, agent: { w: 176, h: 74 }, control: { w: 196, h: 74 }, tool: { w: 128, h: 68 } };
+const ACTIVE_EXTRA = { actor: 30, agent: 34, control: 34, tool: 56 }; // tool: the callout bubble below the ellipse
+const KIND_LABEL = { agent: 'AGENT', tool: '⚙ TOOL', actor: 'APP / 人', control: '引擎' };
+const ACTIVE_SUFFIX = { agent: '处理中', tool: '调用中', actor: '操作中', control: '运行中' };
+const KIND_BADGE = { agent: 'AGENT', tool: 'TOOL · 被调用', actor: 'APP / HUMAN', control: '引擎 · 非 Agent' };
+const KIND_SHORT = { agent: 'Agent', tool: '工具', actor: '应用', control: '引擎' };
+
+// Nodes mirror backend/app: actors (top row), agents (middle), tools (bottom). Chinese label, module id as subtitle.
+const NODES = [
+  // apps / humans
+  { id: 'customer', label: '客户端', sub: 'Customer App · /customer', kind: 'actor', x: 160, y: 58 },
+  { id: 'dispatcher', label: '调度员工作台', sub: 'Dispatcher · review / human queue', kind: 'actor', x: 900, y: 58 },
+  { id: 'technician', label: '技师端', sub: 'Technician App · /technician', kind: 'actor', x: 1090, y: 58 },
+  // orchestration layer: deterministic drivers + the task runtime — not agents
+  { id: 'orchestrator', label: '编排器', sub: 'Orchestrator · 唯一写入者', kind: 'control', tag: '引擎 · 流程编排', x: 310, y: 215 },
+  { id: 'policy', label: '策略引擎', sub: 'PolicyEngine', kind: 'control', tag: '引擎 · 规则裁决', x: 620, y: 215 },
+  { id: 'runtime', label: 'Agent 运行时', sub: 'AgentRuntime · 19 tools · budgets', kind: 'control', tag: '引擎 · 任务循环', x: 930, y: 215 },
+  // the three logical agents
+  { id: 'understanding', label: '语义理解 Agent', sub: 'UnderstandingAgent', kind: 'agent', x: 200, y: 400 },
+  { id: 'scheduling', label: '排班 Agent', sub: 'SchedulingAgent', kind: 'agent', x: 620, y: 400 },
+  { id: 'risk', label: '风险监控 Agent', sub: 'RiskMonitoringAgent', kind: 'agent', x: 1040, y: 400 },
+  // tools
+  { id: 'llm', label: '大模型', sub: 'LLM provider', kind: 'tool', x: 70, y: 595 },
+  { id: 'catalog', label: '维修目录', sub: 'repair catalog', kind: 'tool', x: 207, y: 595 },
+  { id: 'geocoder', label: '地址解析', sub: 'geocoder', kind: 'tool', x: 344, y: 595 },
+  { id: 'routes', label: '通勤矩阵', sub: 'route matrix', kind: 'tool', x: 481, y: 595 },
+  { id: 'solver', label: '插入求解器', sub: 'solver', kind: 'tool', x: 618, y: 595 },
+  { id: 'validator', label: '硬约束校验', sub: 'validator', kind: 'tool', x: 755, y: 595 },
+  { id: 'scorer', label: '打分器', sub: 'scorer', kind: 'tool', x: 892, y: 595 },
+  { id: 'notify', label: '通知', sub: 'notify · simulated', kind: 'tool', x: 1029, y: 595 },
+  { id: 'humanq', label: '转人工', sub: 'flag_for_human', kind: 'tool', x: 1166, y: 595 },
+];
+
+// Every step: which node works, what it is doing (shown at the node), the data it hands to the next node (`out`,
+// named as fields, shown on the edge) and the field-level breakdown for the rail. No raw ids or values.
+const SCEN = [
+  {
+    id: 'p3-auto', name: 'P3 普通单 · 自动派单',
+    summary: '老客户在客户端下一张普通单：一次请求内完成 理解 → 派单 → 提交 → 通知，全程自动，不进 Agent 运行时。',
+    entry: '客户消息 + 客户身份 + 会话上下文',
+    steps: [
+      { node: 'customer', title: '客户提交维修请求（进入系统）', doing: '在聊天框描述故障', out: '客户消息 + 客户身份 + 会话上下文',
+        outputs: ['客户消息：故障描述原话', '客户身份：老客户，含历史记录', '会话上下文：已保存的电话与默认地址'] },
+      { node: 'understanding', title: '语义理解与信息收集', doing: '判断意图，盘点已知 / 缺失字段', out: '意图 + 已知字段 + 缺失字段清单',
+        outputs: ['意图：维修请求', '已知字段：客户、地址', '缺失字段：故障条目、期望时间窗', '安全风险标记：无'] },
+      { node: 'llm', title: '结构化理解', doing: '把原话解析成结构化字段', out: '故障线索 + 地点线索 + 时间线索',
+        outputs: ['故障线索：从原话中抽取', '地点线索 / 时间线索：本次为空', '只产出语义字段，不产生时长、优先级或分数'] },
+      { node: 'catalog', title: '维修目录匹配', doing: '在维修目录中检索匹配条目', out: '目录条目 + 复杂度 + 标准时长 + 备选项',
+        outputs: ['目录条目：空调不制冷', '复杂度等级 + 标准维修时长', '备选条目：2 条，供客户点选确认'] },
+      { node: 'geocoder', title: '地址解析', doing: '把地址转换成坐标', out: '标准地址 + 坐标 + 解析来源',
+        outputs: ['标准地址 + 邮编', '经纬度坐标', '解析来源：OneMap（失败则 Nominatim）', '单元号完整 → 允许建单'] },
+      { node: 'understanding', title: '可行时间窗协商', doing: '零扰动试算可行时间窗', out: '可行时间窗 ×3 + 对应技师 + 最早开始时间',
+        outputs: ['候选时间窗：3 个（30 分钟步长）', '每个窗口附带：可服务技师、最早开始时间', '客户历史偏好：差评过的技师降权'] },
+      { node: 'customer', title: '确认卡 → 提交订单', doing: '核对确认卡并提交', out: '已确认的工单信息 + 基础优先级',
+        outputs: ['工单信息：故障条目、地址与单元号、时间窗、联系方式', '加急 / 付费选项：否', '基础优先级：P3'] },
+      { node: 'orchestrator', title: '创建工单 → 启动派单', doing: '建单，固化目录参数，启动派单', out: '工单 + 目录参数快照 + 派单运行记录',
+        outputs: ['工单：状态 OPEN，基础优先级 P3', '目录参数快照：复制到工单，之后目录变更不影响此单', '派单运行记录：开始记录每一步'] },
+      { node: 'scheduling', title: '读取排班快照', doing: '读取当前排班与锁定任务', out: '排班快照 + 技师状态 + 锁定前缀',
+        outputs: ['排班快照：当前版本、全部技师与在途工单', '锁定前缀：已出发 / 进行中的任务不可移动', '不可用时段：休息块、请假区间'] },
+      { node: 'routes', title: '通勤时间矩阵', doing: '查询技师 ↔ 客户地址的通勤时间', out: '通勤时间矩阵 + 路网来源',
+        outputs: ['通勤矩阵：每位技师到每个地址的分钟数', '路网来源：OSRM 真实路网 × 拥堵系数 + 停车余量', '不可达路段：标记为空，不猜测'] },
+      { node: 'risk', title: '优先级分级', doing: '计算有效优先级与改动权限', out: '有效优先级 + 改动权限',
+        outputs: ['有效优先级：P3（基础 P3，无风险事件）', '改动权限：不允许移动任何其他工单', '对照规则：付费 → P1；技师取消且剩余 < 30 分钟 → P0'] },
+      { node: 'scheduling', title: '有界搜索求解', doing: '合格技师 × 插入位置 逐一试算', out: '合格技师集 + 可行插入方案集',
+        outputs: ['合格技师：3 / 8（技能等级达标、未被客户排除）', '试算：27 个插入位置 → 6 个可行', 'P3 不触发有界修复（不动他人）'] },
+      { node: 'solver', title: '生成候选方案', doing: '把可行解整理成完整候选方案', out: '候选方案列表（最快响应 / 最少扰动 / 均衡）',
+        outputs: ['候选方案：最快响应、最少扰动、均衡 三类', '每个候选都是一份完整排班，不是片段', '受影响工单数：0'] },
+      { node: 'validator', title: '硬约束校验', doing: '逐候选校验技能 / 班次 / 窗口 / 休息', out: '校验结果 + 违规项 + 被拒原因统计',
+        outputs: ['校验项：技能、班次、时间窗、休息、锁定', '违规项：0', '被拒原因统计：时间窗冲突、超出班次'] },
+      { node: 'scorer', title: '匹配打分', doing: '五项打分，取最低分作决策分', out: '五项分项分 + 匹配总分 + 决策分',
+        outputs: ['分项分：技能、通勤、响应速度、负载均衡、稳定性', '匹配总分：86.9', '决策分：取所有变动工单中的最低分', '优先级不加分'] },
+      { node: 'policy', title: '策略裁决', doing: '按优先级、权限、阈值裁决', out: '裁决结果（自动 / 人工 / 无解）+ 理由',
+        outputs: ['裁决：自动执行', '依据：决策分 86.9 > 阈值 70，受影响工单 0，权限合规', '理由列表：写入运行记录，可回溯'] },
+      { node: 'orchestrator', title: '提交排班（唯一写入者）', doing: '写入新排班版本与派工记录', out: '新排班版本 + 派工记录 + 工单状态',
+        outputs: ['排班版本：v7 → v8（保留父版本）', '派工记录：技师、出发 / 开始 / 结束时间', '工单状态：已派单'] },
+      { node: 'notify', title: '应用内通知', doing: '生成客户与技师通知', out: '客户通知 + 技师通知',
+        outputs: ['客户通知：技师姓名与预计开始时间', '技师通知：新任务与时间', '投递方式：应用内模拟，不发真实短信'] },
+      { node: 'technician', title: '三端同步（流程结束）', doing: '技师端 / 工作台 / 客户端刷新', out: '三端一致的工单状态 + 预计到达时间',
+        outputs: ['技师端：下一单卡片（地址、单元号、客户历史提示）', '调度工作台：新增排班块，其他块不动', '客户端：订单状态 已派单 · 预计到达时间'] },
+    ],
+  },
+  {
+    id: 'p0-manual', name: 'P0 技师请假 · 人工审批',
+    summary: '技师在技师端请假，同一事件释放的三张单按剩余时间分成 P0 / P2；P0 方案影响他人 → 必须调度员审批。',
+    entry: '请假事件 + 技师身份 + 生效时间',
+    steps: [
+      { node: 'technician', title: '技师请假（进入系统）', doing: '提交“从现在起不可用”', out: '请假事件 + 技师身份 + 生效时间',
+        outputs: ['请假事件：从当前时刻起不可用', '技师身份 + 生效时间', '幂等键：同一请假不会被重复处理'] },
+      { node: 'orchestrator', title: '先记录事实', doing: '写不可用区间，释放未出发工单', out: '不可用区间 + 被释放工单列表',
+        outputs: ['不可用区间：写入技师日程，技师版本 +1', '被释放工单：3 张未出发', '执行中的工单：无 → 不产生中断风险'] },
+      { node: 'risk', title: '按剩余时间分级', doing: '给每张被释放工单定优先级', out: '各工单有效优先级 + 风险事件',
+        outputs: ['规则：剩余 < 30 分钟 → P0；> 120 分钟 → P2', '结果：1 张 P0，2 张 P2', '风险事件：技师取消 ×3（稳定键，不重复告警）'] },
+      { node: 'scheduling', title: '恢复派单（最紧急优先）', doing: '按紧急度排序，逐单恢复', out: '处理顺序 + 排班快照',
+        outputs: ['处理顺序：P0 优先，再 P2', '排班快照：请假技师整行不可用', '规则：同一事件释放多单时，第二个影响他人的方案强制审批'] },
+      { node: 'routes', title: '通勤矩阵（缓存命中）', doing: '读取缓存的通勤矩阵', out: '通勤时间矩阵（缓存）',
+        outputs: ['通勤矩阵：命中磁盘缓存，不重新查询', '候选技师到客户地址：19 分钟'] },
+      { node: 'solver', title: '有界修复求解', doing: '直接插入失败 → 有界修复', out: '修复方案（新排工单 + 被移工单）',
+        outputs: ['合格技师：仅 1 人可接', '直接插入：0 可行（与既有工单冲突）', '有界修复：把一张 P2 工单移给另一位技师 → 可行'] },
+      { node: 'validator', title: '校验修复方案', doing: '校验新排与被移工单的约束', out: '校验结果 + 受影响工单集',
+        outputs: ['新排工单：仍在客户时间窗内 ✓', '被移工单：仍在其原时间窗内 ✓', '受影响工单集：1 张（换了技师）；仅通勤变化不计入'] },
+      { node: 'scorer', title: '匹配打分', doing: '对新排与被移工单都打分', out: '各工单匹配分 + 决策分（取最低）',
+        outputs: ['新排工单：83.4', '被移工单：78.1（换人扣稳定性分）', '决策分：取最低 78.1'] },
+      { node: 'policy', title: '策略裁决', doing: 'P0 影响他人 → 强制人工审批', out: '裁决结果（人工审批）+ 理由',
+        outputs: ['权限检查：P0 最多可影响 5 张未出发的 P2/P3 ✓', '分数达标（78.1 > 70），但 P0 影响他人 → 人工审批', '理由：写入运行记录'] },
+      { node: 'orchestrator', title: '进入审批，不写排班', doing: '保存候选方案，创建审批事项', out: '待审批候选方案 + 人工事项',
+        outputs: ['候选方案：状态待审批，附基础版本与过期时间', '工单状态：待审批', '人工事项：方案审批（策略要求）；工作台“待人工”+1'] },
+      { node: 'scheduling', title: '继续处理 P2 工单', doing: '不等审批，零扰动补派 P2', out: '两张 P2 的自动派单结果 + 新排班版本',
+        outputs: ['两张 P2：零扰动插入成功', '受影响工单 0，分数 > 70 → 自动执行', '排班版本 v8 → v9；不等待 P0 审批'] },
+      { node: 'dispatcher', title: '审批队列：批准并提交', doing: '查看差分表，批准方案', out: '审批决定（批准）',
+        outputs: ['差分表：哪张单换了技师、哪些只变了通勤', '地图联动高亮受影响工单', '批准时在事务内重校验：目标未取消、未出发、版本未变、硬约束仍满足'] },
+      { node: 'orchestrator', title: '提交已批准方案', doing: '写入新排班版本', out: '新排班版本 + 派工变更 + 事项关闭',
+        outputs: ['排班版本 v9 → v10，原因“调度员批准”', '派工变更：P0 工单换技师，被移工单换技师', '人工事项：自动关闭'] },
+      { node: 'notify', title: '通知', doing: '通知两位客户与三位技师', out: '客户通知 ×2 + 技师通知 ×3',
+        outputs: ['P0 客户：新技师与开始时间', '被移工单客户：时间微调，原时间窗仍被遵守', '技师：新任务 / 任务已释放；投递方式：应用内模拟'] },
+      { node: 'technician', title: '三端同步（流程结束）', doing: '技师端 / 工作台 / 客户端刷新', out: '三端一致的排班状态',
+        outputs: ['技师端：下一单变为 P0 工单，顶部提示“排班已更新”', '调度工作台：红色 P0 块，版本 +1，待人工 0', '客户端：技师姓名更新'] },
+    ],
+  },
+  {
+    id: 'agent-escalate', name: '无解 · Agent 运行时 · 转人工',
+    summary: '资源稀缺场景：快路径找不到方案 → 创建 Agent 任务 → 模型选工具、引擎裁决 → 问客户 → 带证据转人工 → 人工解决后唤醒完成。',
+    entry: '客户消息 + 地点 + 期望时间窗',
+    steps: [
+      { node: 'customer', title: '新单进入（资源稀缺场景）', doing: '客户下单', out: '工单信息（故障 / 地点 / 时间窗）+ 基础优先级',
+        outputs: ['工单信息：管道疏通、地点、期望时间窗', '目录条目：水管卫浴 L3，标准时长 45 分钟', '基础优先级：P3'] },
+      { node: 'orchestrator', title: '快路径派单', doing: '建单并启动派单', out: '工单 + 派单运行记录',
+        outputs: ['工单：状态 OPEN，P3', '场景：32 张单在途，2 名技师请假'] },
+      { node: 'scheduling', title: '读取快照，筛选合格技师', doing: '按技能等级筛技师', out: '合格技师集 + 各自日程',
+        outputs: ['合格技师：2 人（技能等级达标）', '两人在客户时间窗内均已排满'] },
+      { node: 'solver', title: '零扰动插入试算', doing: '逐位置试算插入', out: '试算结果（无可行解）+ 被拒原因',
+        outputs: ['试算：14 个位置 → 0 可行', '被拒原因：时间窗、班次、休息', 'P3 无修复权限 → 判定无解'] },
+      { node: 'policy', title: '无候选可裁决', doing: '标记工单未解决', out: '裁决结果（无解）+ 告警',
+        outputs: ['裁决：未解决', '调度员告警；客户端显示 预计到达时间待定'] },
+      { node: 'runtime', title: '创建 Agent 任务', doing: '去重、设定预算，启动任务', out: 'Agent 任务 + 工具调用预算',
+        outputs: ['任务去重键：同一工单同一版本只建一次', '预算：12 次工具调用 / 3 次搜索 / 2 次重试', '模型在锁外决策，每次工具调用一个短事务'] },
+      { node: 'runtime', title: '模型选工具：读上下文 → 试算', doing: '模型选择工具，引擎执行', out: '工具结果（无零扰动位置）+ 调用轨迹',
+        outputs: ['工具结果：无解，原因“无零扰动空位”', '预算消耗：调用 2 / 12，搜索 1 / 3', '调用轨迹：计划 → 调用 → 返回，逐条落库'] },
+      { node: 'solver', title: '搜索替代时间窗', doing: '搜索零扰动的替代窗口', out: '替代时间窗 ×2 + 对应技师',
+        outputs: ['替代窗口：2 个，分别对应不同技师', '零扰动：不移动任何既有工单', '预算消耗：搜索 2 / 3'] },
+      { node: 'runtime', title: '向客户提问', doing: '生成结构化问题', out: '客户问题（选项 ×2 + 都不合适）+ 任务挂起',
+        outputs: ['问题：两个替代时间是否可以？', '选项：2 个窗口 + “都不合适”', '任务状态：等待客户'] },
+      { node: 'customer', title: '客户回答：都不合适', doing: '客户作答', out: '客户答复 + 任务唤醒',
+        outputs: ['答复：都不合适', '任务状态：唤醒，原因“客户已回答”'] },
+      { node: 'humanq', title: '带证据转人工', doing: '汇总证据与建议，创建人工事项', out: '人工事项（类别 / 证据 / 已尝试动作 / 建议）',
+        outputs: ['类别：无可接受时段', '证据：1 次试算 + 2 个被拒窗口；已尝试动作 3 条', '建议下一步：移动一张 P3 或延长班次', '任务状态：等待人工'] },
+      { node: 'dispatcher', title: '人工队列：接手 → 解决', doing: '手工改期一张 P3，标记解决', out: '事项解决 + 任务唤醒',
+        outputs: ['调度员手工改期一张 P3 工单', '标记事项已解决 → 等待中的任务被唤醒'] },
+      { node: 'runtime', title: '唤醒后重试', doing: '重新试算并提交方案', out: '可行方案 + 提交结果（已提交）',
+        outputs: ['重试试算：找到可行位置，受影响 0', '提交方案：引擎重校验后提交', '预算消耗：调用 4 / 12；无降级'] },
+      { node: 'orchestrator', title: '提交排班', doing: '写入新版本，关闭任务', out: '新排班版本 + 工单状态 + 任务结果',
+        outputs: ['排班版本 v4 → v5', '工单状态：已派单', 'Agent 任务：成功，调用轨迹 4 行'] },
+      { node: 'notify', title: '通知', doing: '通知客户、技师、调度员', out: '客户通知 + 技师通知 + 调度员通知',
+        outputs: ['客户：技师与开始时间', '技师：新任务；调度员：事项已关闭', '投递方式：应用内模拟'] },
+      { node: 'customer', title: '客户端刷新（流程结束）', doing: '订单页刷新', out: '订单状态 + 技师 + 时间 + 任务轨迹',
+        outputs: ['订单页：已派单、技师姓名、开始时间', '工作台 Agent 活动：完整调用轨迹可查'] },
+    ],
+  },
+];
+
+const byId = Object.fromEntries(NODES.map(n => [n.id, n]));
+const tagOf = n => n.tag || KIND_LABEL[n.kind];
+const $ = s => document.querySelector(s);
+const svgNS = 'http://www.w3.org/2000/svg';
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const els = {
+  wrap: $('#stageWrap'), scaler: $('#scaler'), stage: $('#stage'), edgeLayer: $('#edgeLayer'), measure: $('#measure'),
+  nodes: $('#nodes'), chipIn: $('#chipIn'), chipOut: $('#chipOut'), token: $('#token'),
+  tabs: $('#tabs'), summary: $('#summary'), card: $('#card'), badge: $('#badge'), count: $('#count'),
+  nodeName: $('#nodeName'), nodeSub: $('#nodeSub'), stepTitle: $('#stepTitle'), stepDoing: $('#stepDoing'),
+  stepIn: $('#stepIn'), stepOut: $('#stepOut'), endNote: $('#endNote'), progress: $('#progress'), bar: $('#bar'),
+  steps: $('#steps'), btnPrev: $('#btnPrev'), btnPlay: $('#btnPlay'), btnNext: $('#btnNext'), btnReplay: $('#btnReplay'),
+  loopChk: $('#loopChk'), speed: $('#speed'),
+};
+
+/* ---------- geometry ---------- */
+function rectOf(n, active) {
+  const s = SIZE[n.kind];
+  return { x: n.x - s.w / 2, y: n.y - s.h / 2, w: s.w, h: s.h + (active ? ACTIVE_EXTRA[n.kind] : 0) };
+}
+function port(n, side) {
+  const s = SIZE[n.kind];
+  return { x: n.x, y: side === 'top' ? n.y - s.h / 2 : n.y + s.h / 2 };
+}
+/** Visible edge between two nodes: cross-row S-curve, same-row bow (above; below for the top row), or a self loop. */
+function edgeGeom(a, b) {
+  const key = `${a.id}>${b.id}`;
+  if (a.id === b.id) {
+    const dir = a.kind === 'actor' ? 1 : -1;
+    const p = port(a, dir < 0 ? 'top' : 'bottom');
+    return { key, start: p, end: p, rest: `C ${p.x - 48} ${p.y + dir * 82}, ${p.x + 48} ${p.y + dir * 82}, ${p.x} ${p.y}` };
+  }
+  if (a.y === b.y) {
+    const dir = a.kind === 'actor' ? 1 : -1;
+    const side = dir < 0 ? 'top' : 'bottom';
+    const pa = port(a, side), pb = port(b, side);
+    // a quadratic curve only reaches halfway to its control point, so the control offset is twice the wanted bow
+    const bow = 36 + Math.min(60, Math.abs(a.x - b.x) / 8);
+    return { key, start: pa, end: pb, rest: `Q ${(pa.x + pb.x) / 2} ${pa.y + dir * 2 * bow} ${pb.x} ${pb.y}` };
+  }
+  const down = b.y > a.y;
+  const pa = port(a, down ? 'bottom' : 'top'), pb = port(b, down ? 'top' : 'bottom');
+  const midY = (pa.y + pb.y) / 2;
+  return { key, start: pa, end: pb, rest: `C ${pa.x} ${midY}, ${pb.x} ${midY}, ${pb.x} ${pb.y}` };
+}
+const dOf = g => `M ${g.start.x} ${g.start.y} ${g.rest}`;
+const intersects = (r, o) => !(r.x + r.w < o.x || o.x + o.w < r.x || r.y + r.h < o.y || o.y + o.h < r.y);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const easeInOut = t => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+/* ---------- static render ---------- */
+NODES.forEach(n => {
+  const r = rectOf(n, false);
+  const el = document.createElement('div');
+  el.className = `node ${n.kind}`;
+  el.dataset.id = n.id;
+  el.style.left = r.x + 'px'; el.style.top = r.y + 'px'; el.style.width = r.w + 'px';
+  el.innerHTML = '<div class="k"></div><div class="l"></div><div class="s"></div><div class="d"><div><p></p></div></div>';
+  el.querySelector('.k').textContent = tagOf(n);
+  el.querySelector('.l').textContent = n.label;
+  el.querySelector('.s').textContent = n.sub;
+  els.nodes.appendChild(el);
+});
+const nodeEl = id => els.nodes.querySelector(`.node[data-id="${id}"]`);
+
+/* ---------- state ---------- */
+const S = { scen: null, steps: [], idx: 0, elapsed: 0, playing: true, loop: true, speed: 1, phase: '', tm: null,
+  dock: null, dockNext: null, len: 0, last: 0, stopped: false };
+
+function readTime(st) {
+  const text = st.title + st.doing + st.out + st.outputs.join('');
+  let units = 0;
+  for (const ch of text) units += /[　-鿿＀-￯]/.test(ch) ? 1.6 : 1;
+  return clamp(2000 + units * 24, 3600, 7500);
+}
+function timing(i) {
+  const st = S.steps[i], prev = i > 0 ? S.steps[i - 1] : null;
+  const isLast = i === S.steps.length - 1;
+  let T = i === 0 ? 1100 : (prev.node === st.node ? 520 : 780);
+  if (reduced) T = 200;
+  const R = readTime(st);
+  const HOLD = isLast ? 5200 : 0; // the flow visibly ends before it starts again
+  return { T, R, HOLD, total: T + R + HOLD, isLast };
+}
+
+function loadScenario(id) {
+  S.scen = SCEN.find(s => s.id === id) || SCEN[0];
+  S.steps = S.scen.steps;
+  els.summary.textContent = S.scen.summary;
+  els.tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-pressed', String(t.dataset.id === S.scen.id)));
+  // faint edges: every hop of this scenario, drawn once
+  els.edgeLayer.innerHTML = '';
+  const seen = new Set();
+  for (let i = 1; i < S.steps.length; i++) {
+    const g = edgeGeom(byId[S.steps[i - 1].node], byId[S.steps[i].node]);
+    if (seen.has(g.key)) continue;
+    seen.add(g.key);
+    const p = document.createElementNS(svgNS, 'path');
+    p.setAttribute('class', 'e'); p.setAttribute('d', dOf(g)); p.dataset.key = g.key;
+    els.edgeLayer.appendChild(p);
+  }
+  // step list
+  els.steps.innerHTML = '';
+  S.steps.forEach((st, i) => {
+    const n = byId[st.node];
+    const b = document.createElement('button');
+    b.className = 'step'; b.type = 'button';
+    b.innerHTML = '<span class="n"></span><span class="t"><span class="kk"></span><b></b><span class="tt"></span><span class="o"></span></span>';
+    b.querySelector('.n').textContent = i + 1;
+    b.querySelector('.kk').textContent = KIND_SHORT[n.kind]; b.querySelector('.kk').classList.add(n.kind);
+    b.querySelector('b').textContent = n.label;
+    b.querySelector('.tt').textContent = ' · ' + st.title;
+    b.querySelector('.o').textContent = '输出 → ' + st.out;
+    b.addEventListener('click', () => { goTo(i); });
+    els.steps.appendChild(b);
+  });
+  restart();
+}
+
+function restart() {
+  S.dock = null; S.stopped = false;
+  els.token.classList.remove('ping');
+  startStep(0);
+}
+
+function edgeByKey(key) { return els.edgeLayer.querySelector(`path.e[data-key="${key}"]`); }
+
+function startStep(i) {
+  S.idx = i; S.elapsed = 0; S.phase = ''; S.tm = timing(i);
+  const st = S.steps[i], prev = i > 0 ? S.steps[i - 1] : null, n = byId[st.node];
+  // silence everything, then light only the incoming edge
+  els.nodes.querySelectorAll('.node.active').forEach(e => { e.classList.remove('active'); e.querySelector('.k').textContent = tagOf(byId[e.dataset.id]); });
+  els.edgeLayer.querySelectorAll('path.e').forEach(p => p.classList.remove('lit', 'next'));
+  els.chipOut.classList.remove('show', 'end');
+  els.chipIn.classList.remove('dim');
+  nodeEl(st.node).querySelector('.d p').textContent = st.doing;
+
+  let inRect = null;
+  if (i === 0) {
+    const top = port(n, 'top');
+    S.travelD = `M ${n.x} -40 L ${top.x} ${top.y}`;
+    S.dockNext = top;
+    setChip(els.chipIn, '▶ 进入系统', S.scen.entry);
+    inRect = placeBeside(els.chipIn, n);
+  } else {
+    const g = edgeGeom(byId[prev.node], n);
+    const from = S.dock || port(byId[prev.node], 'top');
+    S.travelD = `M ${from.x} ${from.y} L ${g.start.x} ${g.start.y} ${g.rest}`;
+    S.dockNext = g.end;
+    const e = edgeByKey(g.key); if (e) e.classList.add('lit');
+    setChip(els.chipIn, '输入', prev.out);
+    els.measure.setAttribute('d', dOf(g));
+    inRect = placeOnPath(els.chipIn, obstacles(st.node, null));
+  }
+  S.inRect = inRect;
+  els.measure.setAttribute('d', S.travelD);
+  S.len = els.measure.getTotalLength();
+  els.token.classList.remove('hidden');
+  renderRail();
+}
+
+function setChip(el, key, text) {
+  el.querySelector('.ck').textContent = key;
+  el.querySelector('.cv').textContent = text;
+  el.classList.add('show');
+}
+function obstacles(activeId, otherRect) {
+  const list = NODES.map(n => rectOf(n, n.id === activeId));
+  const d = S.dockNext; if (d) list.push({ x: d.x - 16, y: d.y - 16, w: 32, h: 32 });
+  if (otherRect) list.push(otherRect);
+  return list;
+}
+/** Put a chip on the path currently loaded in #measure, at the first sample point where it hits nothing. */
+function placeOnPath(el, avoid) {
+  const w = el.offsetWidth, h = el.offsetHeight, L = els.measure.getTotalLength();
+  const free = r => !avoid.some(o => intersects(r, o));
+  const rectAt = (x, y) => ({ x: clamp(x, w / 2 + 6, W - w / 2 - 6) - w / 2, y: clamp(y, h / 2 + 4, H - h / 2 - 4) - h / 2, w, h });
+  let best = null;
+  for (const t of [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.2, 0.8, 0.15, 0.85]) {
+    const p = els.measure.getPointAtLength(L * t);
+    const r = rectAt(p.x, p.y);
+    if (!best) best = r;
+    if (free(r)) { best = r; break; }
+  }
+  if (!free(best)) {
+    // nothing along the edge is clear (two short hops in one band): stack the chip above or below the midpoint
+    const m = els.measure.getPointAtLength(L * 0.5);
+    for (const dy of [-(h + 8), h + 8, -2 * (h + 8), 2 * (h + 8)]) {
+      const r = rectAt(m.x, m.y + dy);
+      if (free(r)) { best = r; break; }
+    }
+  }
+  el.style.left = (best.x + best.w / 2) + 'px'; el.style.top = (best.y + best.h / 2) + 'px';
+  return best;
+}
+function placeBeside(el, n) {
+  const w = el.offsetWidth, h = el.offsetHeight, r = rectOf(n, true);
+  const right = n.x < W / 2;
+  const x = right ? r.x + r.w + 12 + w / 2 : r.x - 12 - w / 2;
+  const y = n.y;
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+  return { x: x - w / 2, y: y - h / 2, w, h };
+}
+function placeEnd(el, n) {
+  const w = el.offsetWidth, h = el.offsetHeight, r = rectOf(n, true);
+  const below = n.kind !== 'tool';
+  const y = below ? r.y + r.h + 14 + h / 2 : r.y - 14 - h / 2;
+  const x = clamp(n.x, w / 2 + 6, W - w / 2 - 6);
+  el.style.left = x + 'px'; el.style.top = y + 'px';
+}
+
+function setToken(p) { els.token.setAttribute('transform', `translate(${p.x} ${p.y})`); }
+
+function activate(st, n) {
+  const el = nodeEl(st.node);
+  el.classList.add('active');
+  el.querySelector('.k').textContent = tagOf(n) + ' · ' + ACTIVE_SUFFIX[n.kind];
+}
+
+/* ---------- clock ---------- */
+function frame(ts) {
+  const dt = Math.min(100, ts - (S.last || ts)); S.last = ts;
+  if (S.playing && !S.stopped) S.elapsed += dt * S.speed;
+  render();
+  if (S.playing && !S.stopped && S.elapsed >= S.tm.total) advance();
+  requestAnimationFrame(frame);
+}
+function render() {
+  const { T, R, HOLD, total, isLast } = S.tm, e = S.elapsed;
+  const st = S.steps[S.idx], n = byId[st.node];
+  if (e < T) {
+    S.phase = 'travel';
+    const k = S.idx === 0 ? easeOut(e / T) : easeInOut(e / T);
+    setToken(els.measure.getPointAtLength(S.len * k));
+    els.bar.style.width = '0%';
+    return;
+  }
+  if (S.phase === 'travel' || S.phase === '') {
+    S.phase = 'work';
+    setToken(S.dockNext); S.dock = S.dockNext;
+    activate(st, n);
+    if (S.idx === 0 && !reduced) { els.token.classList.remove('ping'); void els.token.getBoundingClientRect(); els.token.classList.add('ping'); }
+  }
+  const pr = clamp((e - T) / R, 0, 1);
+  els.bar.style.width = (pr * 100) + '%';
+  if (S.phase === 'work' && e >= T + 0.4 * R) {
+    S.phase = 'out';
+    els.chipIn.classList.add('dim');
+    if (!isLast) {
+      const nxt = byId[S.steps[S.idx + 1].node];
+      const g = edgeGeom(n, nxt);
+      const ne = edgeByKey(g.key); if (ne) ne.classList.add('next');
+      els.chipOut.classList.remove('end');
+      setChip(els.chipOut, '输出', st.out);
+      els.measure.setAttribute('d', dOf(g));
+      placeOnPath(els.chipOut, obstacles(st.node, S.inRect));
+      els.measure.setAttribute('d', S.travelD);
+    } else {
+      els.chipOut.classList.add('end');
+      setChip(els.chipOut, '✓ 流程结束', st.out);
+      placeEnd(els.chipOut, n);
+    }
+  }
+  if (isLast && e >= T + R) {
+    if (S.phase !== 'hold') { S.phase = 'hold'; els.progress.classList.add('hold'); }
+    const left = Math.max(0, Math.ceil((total - e) / 1000));
+    els.bar.style.width = (clamp((e - T - R) / HOLD, 0, 1) * 100) + '%';
+    els.endNote.textContent = S.loop ? `✓ 流程结束 · ${left} s 后从头重播` : '✓ 流程结束 · 按「重播」再看一遍';
+    els.chipOut.querySelector('.ck').textContent = S.loop ? `✓ 流程结束 · ${left} s 后重播` : '✓ 流程结束';
+  }
+}
+function advance() {
+  if (!S.tm.isLast) startStep(S.idx + 1);
+  else if (S.loop) restart();
+  else { S.stopped = true; S.playing = false; syncPlayBtn(); }
+}
+function goTo(i) {
+  S.stopped = false;
+  if (i === 0) { restart(); return; }
+  S.dock = null;
+  els.progress.classList.remove('hold');
+  startStep(i);
+}
+
+/* ---------- rail ---------- */
+function renderRail() {
+  const i = S.idx, st = S.steps[i], n = byId[st.node], prev = i > 0 ? S.steps[i - 1] : null;
+  els.card.className = `card now ${n.kind}`;
+  els.badge.className = `badge ${n.kind}`; els.badge.textContent = KIND_BADGE[n.kind];
+  els.count.textContent = `步骤 ${i + 1} / ${S.steps.length}`;
+  els.nodeName.textContent = n.label; els.nodeSub.textContent = n.sub;
+  els.stepTitle.textContent = st.title; els.stepDoing.textContent = st.doing;
+  els.stepIn.textContent = prev ? prev.out : '进入系统：' + S.scen.entry;
+  els.stepOut.innerHTML = '';
+  st.outputs.forEach(o => { const li = document.createElement('li'); li.textContent = o; els.stepOut.appendChild(li); });
+  els.endNote.textContent = '';
+  els.progress.classList.remove('hold'); els.bar.style.width = '0%';
+  els.btnPrev.disabled = i === 0; els.btnNext.disabled = i === S.steps.length - 1;
+  els.steps.querySelectorAll('.step').forEach((b, j) => {
+    b.className = 'step ' + (j < i ? 'done' : j === i ? 'now' : 'todo');
+    if (j === i) b.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+  });
+}
+function syncPlayBtn() { els.btnPlay.textContent = S.playing ? '⏸ 暂停' : '▶ 播放'; }
+function togglePlay() {
+  if (S.stopped) { restart(); S.playing = true; }
+  else S.playing = !S.playing;
+  syncPlayBtn();
+}
+
+/* ---------- controls ---------- */
+SCEN.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'tab'; b.type = 'button'; b.textContent = s.name; b.dataset.id = s.id;
+  b.addEventListener('click', () => { loadScenario(s.id); S.playing = true; syncPlayBtn(); });
+  els.tabs.appendChild(b);
+});
+els.btnPrev.addEventListener('click', () => goTo(Math.max(0, S.idx - 1)));
+els.btnNext.addEventListener('click', () => goTo(Math.min(S.steps.length - 1, S.idx + 1)));
+els.btnPlay.addEventListener('click', togglePlay);
+els.btnReplay.addEventListener('click', () => { restart(); S.playing = true; syncPlayBtn(); });
+els.loopChk.addEventListener('change', () => { S.loop = els.loopChk.checked; });
+els.speed.addEventListener('change', () => { S.speed = Number(els.speed.value) || 1; });
+window.addEventListener('keydown', e => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement) return;
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight') goTo(Math.min(S.steps.length - 1, S.idx + 1));
+  else if (e.key === 'ArrowLeft') goTo(Math.max(0, S.idx - 1));
+  else if (e.key === 'r' || e.key === 'R') { restart(); S.playing = true; syncPlayBtn(); }
+});
+
+/* ---------- fit the 1240×640 stage to the available width (min 0.6 → scrolls on phones) ---------- */
+function fit() {
+  const avail = els.wrap.clientWidth - 2;
+  const k = Math.max(0.6, Math.min(1, avail / W));
+  els.scaler.style.width = (W * k) + 'px'; els.scaler.style.height = (H * k) + 'px';
+  els.stage.style.transform = `scale(${k})`;
+}
+window.addEventListener('resize', fit);
+fit();
+loadScenario(SCEN[0].id);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

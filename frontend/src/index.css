@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+:root { color-scheme: light; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f5f6f8; color: #1f2937; }
+.badge { @apply inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-semibold leading-4; }
+.btn { @apply inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed; }
+.btn-primary { @apply border-blue-600 bg-blue-600 text-white hover:bg-blue-700; }
+.btn-danger { @apply border-red-600 bg-red-600 text-white hover:bg-red-700; }
+.panel { @apply rounded-lg border border-gray-200 bg-white shadow-sm; }
+.panel-title { @apply flex items-center justify-between border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500; }
+
+/* the SVG pin is the whole marker: Leaflet's default icon box would otherwise draw a border behind it */
+.drop-pin { background: none; border: none; }
+.drop-pin svg { display: block; filter: drop-shadow(0 2px 3px rgb(16 24 40 / 0.25)); }
+
+/* technician markers glide between position polls (positions are polled every 1.5 s; the sim clock moves 1 min/s) */
+.leaflet-marker-icon.tech-marker { transition: transform 1.5s linear; }
+.leaflet-zoom-anim .leaflet-marker-icon.tech-marker, .no-glide .leaflet-marker-icon.tech-marker { transition: none; }
+

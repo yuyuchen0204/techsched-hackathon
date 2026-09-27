@@ -1,0 +1,181 @@
+{
+ "generated_at": "2026-09-16T15:15:12.051043+00:00",
+ "policy_version": "2026-09-14-v2",
+ "route_provider": "fixture",
+ "budgets": {
+  "max_tool_calls_per_wakeup": 12,
+  "max_plan_searches_per_wakeup": 3,
+  "transient_retries": 2
+ },
+ "scenarios": {
+  "main": {
+   "orders_per_seed": 20,
+   "seeds": 10,
+   "orchestration": {
+    "fast_path": {
+     "assignment_rate": 0.655,
+     "on_window_rate": 0.655,
+     "urgent_unserved": 0.4,
+     "affected_total": 0.4,
+     "technician_changes_total": 0.2,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 0.0,
+     "human_escalations": 0.0,
+     "tool_calls": 0.0,
+     "plan_searches": 0.0,
+     "processing_ms": 0.0,
+     "solve_ms_max": 10.4
+    },
+    "agent": {
+     "assignment_rate": 0.781,
+     "on_window_rate": 0.655,
+     "urgent_unserved": 0.2,
+     "affected_total": 0.6,
+     "technician_changes_total": 0.2,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 0.8,
+     "human_escalations": 1.3,
+     "tool_calls": 10.6,
+     "plan_searches": 5.1,
+     "processing_ms": 14.4,
+     "solve_ms_max": 13.4
+    }
+   },
+   "rest": {
+    "fixed_lunch": {
+     "initial_unassigned": 2.7,
+     "utilisation_mean": 0.294,
+     "utilisation_stdev": 0.156,
+     "travel_total": 477.4,
+     "no_rest_needed": 4.0,
+     "rest_slot_found": 3.5,
+     "rest_escalations": 0.5
+    },
+    "dynamic": {
+     "initial_unassigned": 1.4,
+     "utilisation_mean": 0.281,
+     "utilisation_stdev": 0.156,
+     "travel_total": 513.3,
+     "no_rest_needed": 4.8,
+     "rest_slot_found": 2.6,
+     "rest_escalations": 0.6
+    }
+   }
+  },
+  "relaxed": {
+   "orders_per_seed": 12,
+   "seeds": 10,
+   "orchestration": {
+    "fast_path": {
+     "assignment_rate": 0.889,
+     "on_window_rate": 0.889,
+     "urgent_unserved": 0.1,
+     "affected_total": 0.3,
+     "technician_changes_total": 0.2,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 0.0,
+     "human_escalations": 0.0,
+     "tool_calls": 0.0,
+     "plan_searches": 0.0,
+     "processing_ms": 0.0,
+     "solve_ms_max": 3.9
+    },
+    "agent": {
+     "assignment_rate": 0.926,
+     "on_window_rate": 0.889,
+     "urgent_unserved": 0.0,
+     "affected_total": 0.3,
+     "technician_changes_total": 0.2,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 0.2,
+     "human_escalations": 0.4,
+     "tool_calls": 3.0,
+     "plan_searches": 1.4,
+     "processing_ms": 4.2,
+     "solve_ms_max": 4.1
+    }
+   },
+   "rest": {
+    "fixed_lunch": {
+     "initial_unassigned": 1.5,
+     "utilisation_mean": 0.18,
+     "utilisation_stdev": 0.13,
+     "travel_total": 270.6,
+     "no_rest_needed": 6.4,
+     "rest_slot_found": 1.5,
+     "rest_escalations": 0.1
+    },
+    "dynamic": {
+     "initial_unassigned": 0.8,
+     "utilisation_mean": 0.164,
+     "utilisation_stdev": 0.126,
+     "travel_total": 286.3,
+     "no_rest_needed": 6.5,
+     "rest_slot_found": 1.5,
+     "rest_escalations": 0.0
+    }
+   }
+  },
+  "scarce": {
+   "orders_per_seed": 32,
+   "seeds": 10,
+   "orchestration": {
+    "fast_path": {
+     "assignment_rate": 0.312,
+     "on_window_rate": 0.312,
+     "urgent_unserved": 0.9,
+     "affected_total": 0.1,
+     "technician_changes_total": 0.0,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 0.0,
+     "human_escalations": 0.0,
+     "tool_calls": 0.0,
+     "plan_searches": 0.0,
+     "processing_ms": 0.0,
+     "solve_ms_max": 28.7
+    },
+    "agent": {
+     "assignment_rate": 0.518,
+     "on_window_rate": 0.312,
+     "urgent_unserved": 0.6,
+     "affected_total": 0.6,
+     "technician_changes_total": 0.0,
+     "hard_or_authority_violations": 0.0,
+     "served_in_alt_window": 1.1,
+     "human_escalations": 3.3,
+     "tool_calls": 23.6,
+     "plan_searches": 11.5,
+     "processing_ms": 37.3,
+     "solve_ms_max": 32.9
+    }
+   },
+   "rest": {
+    "fixed_lunch": {
+     "initial_unassigned": 9.2,
+     "utilisation_mean": 0.385,
+     "utilisation_stdev": 0.251,
+     "travel_total": 640.8,
+     "no_rest_needed": 2.3,
+     "rest_slot_found": 3.2,
+     "rest_escalations": 2.5
+    },
+    "dynamic": {
+     "initial_unassigned": 6.6,
+     "utilisation_mean": 0.382,
+     "utilisation_stdev": 0.256,
+     "travel_total": 709.8,
+     "no_rest_needed": 2.4,
+     "rest_slot_found": 3.7,
+     "rest_escalations": 1.9
+    }
+   }
+  }
+ },
+ "notes": [
+  "fast_path and agent share worlds, events, policy, solver and budgets; only the orchestration of UNRESOLVED differs",
+  "agent: alternative-window acceptance is an ASSUMPTION (customer takes the earliest feasible later window); reported separately",
+  "on_window_rate counts the ORIGINAL window; alt-window service is not counted as on-window",
+  "rest: fixed_lunch = 12:00\u201313:00 unavailable for all; dynamic = idle-gap proxy for a 30-min rest between 180 and 240 work minutes",
+  "synthetic worlds from the real catalog; per-scenario means over seeds; no generalised performance claim"
+ ]
+}
